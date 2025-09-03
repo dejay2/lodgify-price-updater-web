@@ -48,13 +48,21 @@ app.post('/api/run-update', async (req, res) => {
     const apiKey = req.get('x-apikey') || req.body.apiKey || process.env.LODGIFY_API_KEY || '';
     if (!apiKey) return res.status(400).json({ error: 'Missing Lodgify API key' });
 
+    // Always compute date range as today -> 18 months ahead (exclusive end)
+    const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const today = new Date();
+    const startLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const endExclusive = new Date(startLocal.getFullYear(), startLocal.getMonth() + 18, startLocal.getDate());
+    const endLocal = new Date(endExclusive.getFullYear(), endExclusive.getMonth(), endExclusive.getDate() - 1);
+
     const settings = {
       windowDays: Number(req.body.windowDays ?? 30),
       startDiscountPct: Number(req.body.startDiscountPct ?? 30.0),
       endDiscountPct: Number(req.body.endDiscountPct ?? 1.0),
       minPrice: Number(req.body.minPrice ?? 0),
-      startDate: String(req.body.startDate),
-      endDate: String(req.body.endDate),
+      // ignore incoming dates; enforce computed range
+      startDate: fmt(startLocal),
+      endDate: fmt(endLocal),
       rulesFile: req.body.rulesFile || 'price_rules.json',
       dryRun: Boolean(req.body.dryRun ?? true),
       selectedPropertyIds: Array.isArray(req.body.selectedPropertyIds) ? req.body.selectedPropertyIds : [],
@@ -62,12 +70,12 @@ app.post('/api/run-update', async (req, res) => {
 
     // Basic validation before heavy lifting
     if (!settings.startDate || !settings.endDate) {
-      return res.status(400).json({ error: 'startDate and endDate are required' });
+      return res.status(400).json({ error: 'Failed to compute date range' });
     }
     const sDate = new Date(String(settings.startDate) + 'T00:00:00');
     const eDate = new Date(String(settings.endDate) + 'T00:00:00');
     if (isNaN(sDate) || isNaN(eDate)) {
-      return res.status(400).json({ error: 'Invalid startDate or endDate' });
+      return res.status(400).json({ error: 'Invalid computed start or end date' });
     }
     if (eDate < sDate) {
       return res.status(400).json({ error: 'endDate must be on/after startDate' });

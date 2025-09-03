@@ -25,11 +25,14 @@ const addSeasonBtn = document.getElementById('addSeason');
 const saveSeasonsBtn = document.getElementById('saveSeasons');
 const toastContainer = document.getElementById('toast-container');
 
-// Default dates = current year
+// Default date range: today -> 18 months ahead (server enforces; UI displays)
+function fmtDate(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 const now = new Date();
-const y = now.getFullYear();
-startDateInput.value = `${y}-01-01`;
-endDateInput.value = `${y}-12-31`;
+const startLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+const endExclusive = new Date(startLocal.getFullYear(), startLocal.getMonth()+18, startLocal.getDate());
+const endLocal = new Date(endExclusive.getFullYear(), endExclusive.getMonth(), endExclusive.getDate()-1);
+startDateInput.value = fmtDate(startLocal);
+endDateInput.value = fmtDate(endLocal);
 
 function log(msg) {
   logPre.textContent += `\n${msg}`;

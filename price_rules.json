@@ -253,6 +253,12 @@
         "price": 1,
         "min_stay": 1000,
         "max_stay": 1000
+      },
+      {
+        "date": "2025-09-05",
+        "price": 155,
+        "min_stay": 100,
+        "max_stay": 100
       }
     ]
   },
