@@ -46,9 +46,10 @@ export async function runUpdate({ apiKey, settings, postRates }) {
   if (eDate < sDate) {
     throw new Error('endDate must be on/after startDate');
   }
-  // Enforce max 18 months window
+  // Enforce max 18 months window (inclusive of start day; end must be < start + 18 months)
   const monthsDiff = (eDate.getFullYear() - sDate.getFullYear()) * 12 + (eDate.getMonth() - sDate.getMonth());
-  if (monthsDiff > 17) { // inclusive of start month => >17 means longer than 18 months
+  const tooLong = monthsDiff > 18 || (monthsDiff === 18 && eDate.getDate() >= sDate.getDate());
+  if (tooLong) {
     throw new Error('Date range exceeds 18 months. Please reduce the range.');
   }
   // Clamp and sanitize numeric settings
