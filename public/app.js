@@ -223,7 +223,7 @@ saveRatesBtn.addEventListener('click', async (e) => {
     additional_guests_starts_from: Number(typeof addlFromInput !== 'undefined' && addlFromInput ? (addlFromInput.value || 0) : 0),
     los: Array.isArray(existing.los) ? existing.los : [],
   };
-  try { await saveRules(); showToast('Base/Min saved', 'success'); }
+  try { await saveRules(); showToast('Settings saved', 'success'); }
   catch (err) { showToast(err?.message || 'Failed to save base/min', 'error', 5000); }
   finally { btn.textContent = prev; btn.disabled = false; }
 });
