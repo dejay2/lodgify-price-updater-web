@@ -120,7 +120,7 @@ function renderProperties(props) {
     row.appendChild(cb);
     const name = document.createElement('span');
     const abbr = abbreviatePropertyName(p?.name ?? 'Unnamed');
-    name.textContent = `${abbr} (ID ${p.id})`;
+    name.textContent = abbr;
     row.appendChild(name);
     // Reflect selection state visually
     cb.addEventListener('change', () => {
@@ -148,6 +148,10 @@ function abbreviatePropertyName(s) {
   try {
     let t = String(s || '').trim();
     if (!t) return 'Unnamed';
+    // Remove any description after a hyphen/dash ("Beach House 1 - something" -> "Beach House 1")
+    t = t.split(/\s[-–—]\s+/)[0].trim();
+    // Remove trailing property IDs if present in the name already
+    t = t.replace(/\(ID\s*\d+\)$/i, '').trim();
     // Common substitutions
     t = t.replace(/Apartment/gi, 'Apt');
     t = t.replace(/Bedroom/gi, 'BR');
