@@ -6,6 +6,11 @@ Lodgify Price Updater — Web
 A lightweight web app to compute Lodgify day rates from a base/min per property + seasonal rules and optional LOS tiers, preview in a calendar, and post updates via the Lodgify API.
 
 - Quick start, features, and usage: see `README-WEB.md`.
+- Recent additions:
+  - Calendar booking overlays from Lodgify with color coding (no PII).
+  - Import buttons for Upcoming and All bookings, plus incremental sync via updatedSince.
+  - Persistent `bookings_store.json` (Booked-only) with automatic removal on cancel.
+  - Optional automated sync via `BOOKING_SYNC_INTERVAL_MINUTES`.
 - License: MIT (see `LICENSE`).
 
 Development
@@ -14,4 +19,3 @@ Development
 - Start server: `npm start` and open http://localhost:3000
 - Lint: `npm run lint`
 - Format: `npm run format` (or check: `npm run format:check`)
-
