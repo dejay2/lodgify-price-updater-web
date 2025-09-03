@@ -472,8 +472,22 @@ nextMonthBtn?.addEventListener('click', () => changeMonth(1));
 
 function renderSeasonLegend() {
   if (!seasonLegendDiv) return;
+  const allSeasons = Array.isArray(rulesState.seasons) ? rulesState.seasons : [];
+  let list = allSeasons;
+  // Filter to seasons that intersect the displayed month
+  if (monthInput?.value) {
+    const [yy, mm] = monthInput.value.split('-').map(Number);
+    const monthStart = new Date(yy, mm - 1, 1);
+    const monthEnd = new Date(yy, mm, 0); // last day of month
+    list = allSeasons.filter((s) => {
+      if (!s.start || !s.end) return false;
+      const sd = new Date(s.start + 'T00:00:00');
+      const ed = new Date(s.end + 'T00:00:00');
+      return sd <= monthEnd && ed >= monthStart; // overlaps month
+    });
+  }
   const frag = document.createDocumentFragment();
-  for (const s of rulesState.seasons || []) {
+  for (const s of list) {
     const item = document.createElement('span');
     item.className = 'legend-item';
     const sw = document.createElement('i');
