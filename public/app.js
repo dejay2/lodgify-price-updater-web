@@ -119,7 +119,8 @@ function renderProperties(props) {
     cb.value = String(p.id);
     row.appendChild(cb);
     const name = document.createElement('span');
-    name.textContent = `${p.name ?? 'Unnamed'} (ID ${p.id})`;
+    const abbr = abbreviatePropertyName(p?.name ?? 'Unnamed');
+    name.textContent = `${abbr} (ID ${p.id})`;
     row.appendChild(name);
     // Reflect selection state visually
     cb.addEventListener('change', () => {
@@ -140,6 +141,30 @@ function renderProperties(props) {
   actions.appendChild(deselectAll);
   propsDiv.appendChild(actions);
   propsDiv.appendChild(container);
+}
+
+// Abbreviate long property names for nicer cards
+function abbreviatePropertyName(s) {
+  try {
+    let t = String(s || '').trim();
+    if (!t) return 'Unnamed';
+    // Common substitutions
+    t = t.replace(/Apartment/gi, 'Apt');
+    t = t.replace(/Bedroom/gi, 'BR');
+    t = t.replace(/Bed(\s|$)/gi, 'Bd$1');
+    t = t.replace(/House/gi, 'Hse');
+    t = t.replace(/with/gi, 'w/');
+    t = t.replace(/Overlooking/gi, 'O/');
+    t = t.replace(/Studio/gi, 'Std');
+    // Collapse repeated spaces
+    t = t.replace(/\s{2,}/g, ' ').trim();
+    // Truncate if still long
+    const max = 42;
+    if (t.length > max) t = t.slice(0, max - 1) + '…';
+    return t;
+  } catch {
+    return s;
+  }
 }
 
 function syncRulesPropSelect() {
