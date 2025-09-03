@@ -10,6 +10,8 @@ import {
 } from './src/lodgify.js';
 import { runUpdate } from './src/logic.js';
 import { loadRules, saveRules } from './src/rules.js';
+import { fetchUpcomingBookingsPage } from './src/lodgify.js';
+import fs from 'fs/promises';
 // Baseline/calendar editing removed: rules-only mode
 
 dotenv.config();
@@ -125,6 +127,36 @@ app.post('/api/rules', async (req, res) => {
     const msg = err?.message || 'Failed to save rules';
     const code = msg.includes('LOS overlap') || msg.includes('Invalid rulesFile') ? 400 : 500;
     res.status(code).json({ error: msg });
+  }
+});
+
+// Import and persist all upcoming bookings to a JSON file
+app.get('/api/bookings/upcoming', async (req, res) => {
+  try {
+    const apiKey = req.get('x-apikey') || req.query.apiKey || process.env.LODGIFY_API_KEY || '';
+    if (!apiKey) return res.status(400).json({ error: 'Missing Lodgify API key' });
+    const size = Math.max(1, Math.min(200, Number(req.query.size || 50)));
+    // First page to get count
+    const first = await fetchUpcomingBookingsPage(apiKey, { page: 1, size });
+    const total = Number(first?.count || 0);
+    const items = Array.isArray(first?.items) ? first.items.slice() : [];
+    const totalPages = total > 0 ? Math.ceil(total / size) : (items.length > 0 ? 1 : 0);
+    for (let page = 2; page <= totalPages; page++) {
+      const data = await fetchUpcomingBookingsPage(apiKey, { page, size });
+      if (Array.isArray(data?.items) && data.items.length) items.push(...data.items);
+    }
+    const payload = {
+      fetchedAt: new Date().toISOString(),
+      count: total,
+      pageSize: size,
+      totalPages,
+      items,
+    };
+    const outPath = path.join(__dirname, 'upcoming_bookings.json');
+    await fs.writeFile(outPath, JSON.stringify(payload, null, 2), 'utf-8');
+    res.json({ ok: true, saved: outPath, count: payload.count, pages: totalPages, size, itemsSaved: items.length });
+  } catch (err) {
+    res.status(500).json({ error: err?.message || 'Failed to fetch upcoming bookings' });
   }
 });
 

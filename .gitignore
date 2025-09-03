@@ -20,6 +20,7 @@ coverage/
 # Logs and generated payloads
 payload_logs/
 original_rates.json
+upcoming_bookings.json
 *.log
 
 # OS / editor

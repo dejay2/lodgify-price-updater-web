@@ -8,6 +8,7 @@ const minPriceInput = document.getElementById('minPrice');
 const dryRunInput = document.getElementById('dryRun');
 const loadPropsBtn = document.getElementById('loadProps');
 const runBtn = document.getElementById('runBtn');
+const importBookingsBtn = document.getElementById('importBookings');
 const propsDiv = document.getElementById('props');
 const logPre = document.getElementById('log');
 const rulesFileInput = document.getElementById('rulesFile');
@@ -198,6 +199,22 @@ runBtn.addEventListener('click', async () => {
     log(`Summary: success=${data.success} failed=${data.failed} skipped=${data.skipped} dry_run=${data.dry_run}`);
   } catch (e) {
     log(`Error: ${e.message}`);
+  }
+});
+
+// Import upcoming bookings and persist to upcoming_bookings.json via server
+importBookingsBtn.addEventListener('click', async () => {
+  log('Importing upcoming bookings…');
+  try {
+    const qs = new URLSearchParams({ size: String(100) }).toString();
+    const r = await fetch(`/api/bookings/upcoming?${qs}`, { headers: headers() });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data?.error || `HTTP ${r.status}`);
+    log(`Imported ${data.itemsSaved} bookings (count=${data.count}, pages=${data.pages}) → ${data.saved}`);
+    showToast('Upcoming bookings imported', 'success');
+  } catch (e) {
+    log(`Error importing bookings: ${e.message}`);
+    showToast(`Failed to import: ${e.message}`, 'error', 5000);
   }
 });
 

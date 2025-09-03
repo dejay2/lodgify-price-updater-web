@@ -28,6 +28,23 @@ export async function fetchBookings(apiKey, { start, end, page = 1, size = 50 })
   return r.data; // { count, items }
 }
 
+// Fetch a single page of upcoming bookings using Lodgify v2 API with recommended filters
+export async function fetchUpcomingBookingsPage(apiKey, { page = 1, size = 50 }) {
+  const c = client(apiKey);
+  const params = {
+    page,
+    size,
+    includeCount: true,
+    stayFilter: 'Upcoming',
+    includeTransactions: false,
+    includeExternal: true,
+    includeQuoteDetails: false,
+    trash: false,
+  };
+  const r = await c.get(`${BASE_V2}/reservations/bookings`, { params });
+  return r.data; // { count, items }
+}
+
 export async function fetchCalendar(apiKey, houseId, roomTypeId, start, end) {
   const c = client(apiKey);
   const params = { HouseId: houseId, RoomTypeId: roomTypeId, StartDate: start, EndDate: end };
@@ -43,4 +60,3 @@ export async function postRates(apiKey, payload) {
   const r = await c.post(`${BASE_V1}/rates/savewithoutavailability`, payload);
   return r.data;
 }
-
