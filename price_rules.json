@@ -20,8 +20,8 @@
         }
       ],
       "weekend_pct": 20,
-      "price_per_additional_guest": 0,
-      "additional_guests_starts_from": 0
+      "price_per_additional_guest": 5,
+      "additional_guests_starts_from": 2
     },
     "327021": {
       "base": 300,
@@ -36,8 +36,8 @@
         }
       ],
       "weekend_pct": 20,
-      "price_per_additional_guest": 0,
-      "additional_guests_starts_from": 0
+      "price_per_additional_guest": 10,
+      "additional_guests_starts_from": 5
     },
     "327168": {
       "base": 300,

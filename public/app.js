@@ -205,7 +205,7 @@ runBtn.addEventListener('click', async () => {
 propSelectRules.addEventListener('change', updateBaseMinForSelectedProp);
 // Ensure save button state resets on property change
 propSelectRules.addEventListener('change', () => {
-  if (saveRatesBtn) { saveRatesBtn.disabled = false; saveRatesBtn.textContent = 'Save Base/Min'; }
+  if (saveRatesBtn) { saveRatesBtn.disabled = false; saveRatesBtn.textContent = 'Save'; }
 });
 loadRulesBtn.addEventListener('click', async () => {
   try { await loadRules(); showToast('Rules loaded', 'success'); }
