@@ -288,7 +288,7 @@ function renderLos() {
   const los = getLosFor(pid).slice().sort((a, b) => (a.min_days ?? 0) - (b.min_days ?? 0));
   const tbl = document.createElement('table');
   tbl.className = 'seasons-table';
-  tbl.innerHTML = `<thead><tr><th>Name</th><th>Min Days</th><th>Max Days</th><th>Discount %</th><th></th></tr></thead>`;
+  tbl.innerHTML = `<thead><tr><th>Name</th><th>Min Days</th><th>Max Days</th><th>Discount %</th><th>Color</th><th></th></tr></thead>`;
   const tbody = document.createElement('tbody');
   los.forEach((r, idx) => {
     const tr = document.createElement('tr');
@@ -297,6 +297,7 @@ function renderLos() {
       <td><input type="number" step="1" value="${r.min_days ?? ''}" data-i="${idx}" data-k="min_days"></td>
       <td><input type="number" step="1" value="${r.max_days ?? ''}" data-i="${idx}" data-k="max_days"></td>
       <td><input type="number" step="0.1" value="${r.percent ?? 0}" data-i="${idx}" data-k="percent"></td>
+      <td><input type="color" value="${r.color ?? '#888888'}" data-i="${idx}" data-k="color" title="LOS color"></td>
       <td><button data-del="${idx}">Delete</button></td>
     `;
     tbody.appendChild(tr);
@@ -459,6 +460,17 @@ function renderCalendar() {
         const priceEl = document.createElement('div'); priceEl.className = 'cal-price';
         const p = computeOneNightPrice(ds, pid);
         priceEl.innerHTML = p !== '' ? `<span class="pill">£${p}</span>` : '<span class="pill">—</span>';
+        // LOS indicator: colored dot if a second LOS tier exists
+        const rec = rulesState.baseRates[pid] || {};
+        const los = Array.isArray(rec.los) ? rec.los.slice().sort((a,b)=>(a.min_days??0)-(b.min_days??0)) : [];
+        if (los.length > 1) {
+          const second = los[1];
+          const dot = document.createElement('div');
+          dot.className = 'cal-dot';
+          dot.style.background = second?.color || '#888888';
+          dot.title = second?.name ? `Additional LOS: ${second.name}` : 'Additional LOS present';
+          cell.appendChild(dot);
+        }
         cell.appendChild(dateEl); cell.appendChild(priceEl);
       }
       row.appendChild(cell);

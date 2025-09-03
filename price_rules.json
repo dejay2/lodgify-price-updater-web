@@ -8,6 +8,12 @@
           "name": "Default 2-6 nights",
           "min_days": 2,
           "max_days": 6,
+          "percent": 20
+        },
+        {
+          "name": "Week",
+          "min_days": 7,
+          "max_days": 13,
           "percent": 0
         }
       ],

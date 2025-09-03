@@ -34,6 +34,7 @@ button { padding: 8px 12px; border-radius: 6px; border: 1px solid #888; cursor: 
 .cal-cell.selected { outline: 2px solid #4a90e2; outline-offset: -2px; }
 .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #e3f2ff; color: #035; border: 1px solid #9ad; font-size: 0.8rem; }
 .muted .pill { background: #f0f0f0; color: #555; border-color: #ddd; }
+.cal-dot { position: absolute; top: 6px; right: 6px; width: 10px; height: 10px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.2); box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
 .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; }
 .modal .panel { background: white; color: black; min-width: 300px; border-radius: 8px; padding: 16px; }
 .modal.show { display: flex; }

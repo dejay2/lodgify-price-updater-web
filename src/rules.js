@@ -47,6 +47,7 @@ function normalizeRules(r, opts = {}) {
       min_days: x.min_days != null ? Number(x.min_days) : (x.min ?? 1),
       max_days: x.max_days != null ? Number(x.max_days) : (x.max ?? null),
       percent: Number(x.percent || 0), // discount percent
+      color: typeof x.color === 'string' ? x.color : '',
     })) : [];
     // sort by min_days
     los.sort((a, b) => (a.min_days ?? 0) - (b.min_days ?? 0));
