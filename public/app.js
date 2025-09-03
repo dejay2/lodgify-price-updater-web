@@ -58,6 +58,25 @@ function headers() {
 // Properties cache for rules select and run selection
 let allPropsCache = [];
 let rulesState = { baseRates: {}, seasons: [] };
+const appReady = { props: false, rules: false };
+
+function renderOrchestrator() {
+  // Only proceed when both phases are ready
+  if (!appReady.props || !appReady.rules) return;
+  // Ensure a property is selected
+  if (propSelectRules && !propSelectRules.value && propSelectRules.options.length) {
+    propSelectRules.selectedIndex = 0;
+  }
+  if (propSelectCal && !propSelectCal.value && propSelectCal.options.length) {
+    propSelectCal.selectedIndex = 0;
+  }
+  // Hydrate property fields and LOS
+  try { updateBaseMinForSelectedProp(); } catch {}
+  try { renderLos(); } catch {}
+  // Calendar and legend
+  try { renderCalendar(); } catch {}
+  try { renderSeasonLegend(); } catch {}
+}
 
 loadPropsBtn.addEventListener('click', () => { propsDiv.innerHTML = 'Loading…'; loadPropertiesAndRender(); });
 
@@ -69,6 +88,9 @@ async function loadPropertiesAndRender() {
     allPropsCache = props;
     renderProperties(props);
     syncRulesPropSelect();
+    syncCalProps();
+    appReady.props = true;
+    renderOrchestrator();
   } catch (e) {
     propsDiv.innerHTML = `<div class="error">Failed to load: ${e.message}</div>`;
   }
@@ -134,7 +156,9 @@ document.addEventListener('DOMContentLoaded', () => {
   show('properties');
   // Automatically load properties on start
   propsDiv.innerHTML = 'Loading…';
-  loadPropertiesAndRender().then(() => loadRules().catch(() => {})).catch(() => {});
+  loadPropertiesAndRender()
+    .then(() => loadRules().catch(() => {}))
+    .catch(() => {});
 });
 
 runBtn.addEventListener('click', async () => {
@@ -222,9 +246,8 @@ async function loadRules() {
   if (!rulesState.settings) rulesState.settings = {};
   if (overrideColorInput) overrideColorInput.value = rulesState.settings.override_color || '#ffd1dc';
   renderSeasons();
-  updateBaseMinForSelectedProp();
-  // Ensure LOS renders immediately after rules load
-  try { renderLos(); } catch {}
+  appReady.rules = true;
+  renderOrchestrator();
 }
 
 function renderSeasons() {
@@ -457,6 +480,7 @@ function seasonColor(pct) {
 }
 
 function renderCalendar() {
+  if (!appReady.props || !appReady.rules) return;
   // trigger subtle animation
   calDiv.classList.add('cal-animate');
   setTimeout(() => calDiv.classList.remove('cal-animate'), 220);
