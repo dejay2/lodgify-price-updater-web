@@ -18,6 +18,8 @@ const propSelectRules = document.getElementById('propSelectRules');
 const baseRateInput = document.getElementById('baseRate');
 const minRateInput = document.getElementById('minRate');
 const weekendRateInput = document.getElementById('weekendRate');
+const ppagInput = document.getElementById('ppag');
+const addlFromInput = document.getElementById('addlFrom');
 const loadRulesBtn = document.getElementById('loadRules');
 const saveRatesBtn = document.getElementById('saveRates');
 const seasonsDiv = document.getElementById('seasons');
@@ -295,6 +297,8 @@ function updateBaseMinForSelectedProp() {
   baseRateInput.value = rec.base ?? rec.baseRate ?? '';
   minRateInput.value = rec.min ?? rec.minRate ?? '';
   if (weekendRateInput) weekendRateInput.value = rec.weekend_pct ?? rec.weekendPct ?? rec.weekend ?? 0;
+  if (ppagInput) ppagInput.value = rec.price_per_additional_guest ?? rec.additional_guest_price ?? 0;
+  if (addlFromInput) addlFromInput.value = rec.additional_guests_starts_from ?? rec.addl_from ?? 0;
   renderLos();
 }
 
