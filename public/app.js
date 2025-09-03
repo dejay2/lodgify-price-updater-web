@@ -225,7 +225,11 @@ saveRatesBtn.addEventListener('click', async (e) => {
   };
   try { await saveRules(); showToast('Settings saved', 'success'); }
   catch (err) { showToast(err?.message || 'Failed to save base/min', 'error', 5000); }
-  finally { btn.textContent = prev; btn.disabled = false; }
+  finally {
+    btn.textContent = prev; btn.disabled = false;
+    // Rehydrate from disk to confirm and reflect persisted values
+    loadRules().catch(() => {});
+  }
 });
 addSeasonBtn.addEventListener('click', () => {
   rulesState.seasons.push({ name: '', start: '', end: '', percent: 0 });

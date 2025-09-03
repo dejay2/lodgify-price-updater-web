@@ -173,7 +173,7 @@ export function buildRatesFromRules({ propId, roomId, startDate, endDate, rules,
     const ovrList = (rules.overrides && (rules.overrides[String(propId)] || rules.overrides[propId])) || [];
     const ovr = Array.isArray(ovrList) ? ovrList.find(o => o.date === ds) : null;
     if (ovr) {
-      const de = new Date(d.getTime() + 86400000).toISOString().slice(0, 10);
+      const de = ymd(nextDay(d));
       out.push({
         is_default: false,
         start_date: ds,
@@ -181,8 +181,8 @@ export function buildRatesFromRules({ propId, roomId, startDate, endDate, rules,
         price_per_day: Math.floor(Number(ovr.price)),
         min_stay: ovr.min_stay != null ? Number(ovr.min_stay) : 1,
         max_stay: ovr.max_stay != null ? Number(ovr.max_stay) : null,
-        price_per_additional_guest: 0,
-        additional_guests_starts_from: 0,
+        price_per_additional_guest: Number(baseCfg.price_per_additional_guest || 0),
+        additional_guests_starts_from: Number(baseCfg.additional_guests_starts_from || 0),
       });
       continue;
     }
