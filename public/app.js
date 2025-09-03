@@ -219,6 +219,8 @@ saveRatesBtn.addEventListener('click', async (e) => {
     base: Number(baseRateInput.value || 0),
     min: Number(minRateInput.value || 0),
     weekend_pct: Number(weekendRateInput?.value || 0),
+    price_per_additional_guest: Number(typeof ppagInput !== 'undefined' && ppagInput ? (ppagInput.value || 0) : 0),
+    additional_guests_starts_from: Number(typeof addlFromInput !== 'undefined' && addlFromInput ? (addlFromInput.value || 0) : 0),
     los: Array.isArray(existing.los) ? existing.los : [],
   };
   try { await saveRules(); showToast('Base/Min saved', 'success'); }
