@@ -41,6 +41,13 @@ function normalizeRules(r, opts = {}) {
     rec.weekend_pct = Number(
       rec.weekend_pct ?? rec.weekendPct ?? rec.weekend ?? rec.weekend_rate ?? 0
     );
+    // Additional guests pricing
+    rec.price_per_additional_guest = Number(
+      rec.price_per_additional_guest ?? rec.additional_guest_price ?? rec.ppag ?? 0
+    );
+    rec.additional_guests_starts_from = Number(
+      rec.additional_guests_starts_from ?? rec.addl_from ?? rec.additional_guests_start ?? 0
+    );
     // Normalize LOS rules array
     let los = Array.isArray(rec.los) ? rec.los.map(x => ({
       name: x.name || '',
@@ -207,8 +214,8 @@ export function buildRatesFromRules({ propId, roomId, startDate, endDate, rules,
         price_per_day: p,
         min_stay: t.min_stay ?? 1,
         max_stay: t.max_stay ?? null,
-        price_per_additional_guest: 0,
-        additional_guests_starts_from: 0,
+        price_per_additional_guest: Number(baseCfg.price_per_additional_guest || 0),
+        additional_guests_starts_from: Number(baseCfg.additional_guests_starts_from || 0),
       });
     }
   }

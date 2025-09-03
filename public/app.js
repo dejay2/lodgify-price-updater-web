@@ -188,6 +188,8 @@ saveRatesBtn.addEventListener('click', async (e) => {
     base: Number(baseRateInput.value || 0),
     min: Number(minRateInput.value || 0),
     weekend_pct: Number(weekendRateInput?.value || 0),
+    price_per_additional_guest: Number(ppagInput?.value || 0),
+    additional_guests_starts_from: Number(addlFromInput?.value || 0),
     los: Array.isArray(existing.los) ? existing.los : [],
   };
   try { await saveRules(); showToast('Base/Min saved', 'success'); }
@@ -257,6 +259,8 @@ function updateBaseMinForSelectedProp() {
   baseRateInput.value = rec.base ?? rec.baseRate ?? '';
   minRateInput.value = rec.min ?? rec.minRate ?? '';
   if (weekendRateInput) weekendRateInput.value = rec.weekend_pct ?? rec.weekendPct ?? rec.weekend ?? 0;
+  if (ppagInput) ppagInput.value = rec.price_per_additional_guest ?? rec.additional_guest_price ?? 0;
+  if (addlFromInput) addlFromInput.value = rec.additional_guests_starts_from ?? rec.addl_from ?? 0;
   renderLos();
 }
 
