@@ -45,6 +45,7 @@
           <label>Property<select id="propSelectRules"></select></label>
           <label>Base Rate (£)<input id="baseRate" type="number" step="1" /></label>
           <label>Min Rate (£)<input id="minRate" type="number" step="1" /></label>
+          <label>Weekend Rate %<input id="weekendRate" type="number" step="0.5" value="0" /></label>
         </div>
         <div class="actions">
           <button id="loadRules">Load Rules</button>
@@ -79,13 +80,13 @@
         <div class="grid grid-4">
           <label>Property<select id="propSelectCal"></select></label>
           <label>Month<input id="monthInput" type="month" /></label>
-          <div></div><div></div>
+          <div class="actions">
+            <button id="prevMonth">◀ Prev</button>
+            <button id="nextMonth">Next ▶</button>
+          </div>
+          <div></div>
         </div>
-        <div class="legend">
-          <span class="legend-item"><i class="swatch swatch-low"></i>Low season</span>
-          <span class="legend-item"><i class="swatch swatch-mid"></i>Mid</span>
-          <span class="legend-item"><i class="swatch swatch-high"></i>High</span>
-        </div>
+        <div id="seasonLegend" class="legend"></div>
         <div id="calendar" class="calendar"></div>
       </section>
 

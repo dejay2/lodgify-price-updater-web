@@ -37,6 +37,10 @@ function normalizeRules(r, opts = {}) {
     const rec = baseRates[pid] || {};
     rec.base = Number(rec.base ?? rec.baseRate ?? 0);
     rec.min = Number(rec.min ?? rec.minRate ?? 0);
+    // Weekend uplift percent (Fri/Sat)
+    rec.weekend_pct = Number(
+      rec.weekend_pct ?? rec.weekendPct ?? rec.weekend ?? rec.weekend_rate ?? 0
+    );
     // Normalize LOS rules array
     let los = Array.isArray(rec.los) ? rec.los.map(x => ({
       name: x.name || '',
@@ -120,6 +124,7 @@ export function buildRatesFromRules({ propId, roomId, startDate, endDate, rules,
   if (!baseCfg) return out;
   const base = Number(baseCfg.base || baseCfg.baseRate || 0);
   const minRate = Number(baseCfg.min || baseCfg.minRate || 0);
+  const weekendPct = Number(baseCfg.weekend_pct || 0);
   if (!base) return out;
   let losRules = Array.isArray(baseCfg.los) ? baseCfg.los.slice() : [];
   // Ensure non-overlapping, sorted tiers (defensive – saveRules also validates)
@@ -151,6 +156,12 @@ export function buildRatesFromRules({ propId, roomId, startDate, endDate, rules,
     for (const t of tiers) {
       const discount = t.percent || 0; // negative values = discount
       let p = Math.floor(baseAdj * (1 + discount / 100));
+      // Weekend uplift for Fri (5) and Sat (6)
+      const day = d.getDay(); // Sun=0..Sat=6
+      const isWeekend = day === 5 || day === 6;
+      if (isWeekend && weekendPct) {
+        p = Math.floor(p * (1 + Math.abs(weekendPct) / 100));
+      }
       if (minClamp && p < minClamp) p = minClamp;
       out.push({
         is_default: false,

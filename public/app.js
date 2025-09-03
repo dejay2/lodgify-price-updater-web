@@ -17,6 +17,7 @@ const rulesFile2 = document.getElementById('rulesFile2');
 const propSelectRules = document.getElementById('propSelectRules');
 const baseRateInput = document.getElementById('baseRate');
 const minRateInput = document.getElementById('minRate');
+const weekendRateInput = document.getElementById('weekendRate');
 const loadRulesBtn = document.getElementById('loadRules');
 const saveRatesBtn = document.getElementById('saveRates');
 const seasonsDiv = document.getElementById('seasons');
@@ -183,6 +184,7 @@ saveRatesBtn.addEventListener('click', async (e) => {
     ...existing,
     base: Number(baseRateInput.value || 0),
     min: Number(minRateInput.value || 0),
+    weekend_pct: Number(weekendRateInput?.value || 0),
     los: Array.isArray(existing.los) ? existing.los : [],
   };
   try { await saveRules(); showToast('Base/Min saved', 'success'); }
@@ -248,6 +250,7 @@ function updateBaseMinForSelectedProp() {
   const rec = rulesState.baseRates[pid] || {};
   baseRateInput.value = rec.base ?? rec.baseRate ?? '';
   minRateInput.value = rec.min ?? rec.minRate ?? '';
+  if (weekendRateInput) weekendRateInput.value = rec.weekend_pct ?? rec.weekendPct ?? rec.weekend ?? 0;
   renderLos();
 }
 
@@ -331,6 +334,9 @@ saveLosBtn.addEventListener('click', async (e) => {
 const propSelectCal = document.getElementById('propSelectCal');
 const monthInput = document.getElementById('monthInput');
 const calDiv = document.getElementById('calendar');
+const seasonLegendDiv = document.getElementById('seasonLegend');
+const prevMonthBtn = document.getElementById('prevMonth');
+const nextMonthBtn = document.getElementById('nextMonth');
 
 function syncCalProps() {
   propSelectCal.innerHTML = '';
@@ -344,6 +350,7 @@ function syncCalProps() {
   const yy = new Date().getFullYear();
   monthInput.value = `${yy}-${m}`;
   renderCalendar();
+  renderSeasonLegend();
 }
 
 function getSeasonPctForDate(ds) {
@@ -382,6 +389,12 @@ function computeOneNightPrice(ds, pid) {
   const cover = los.find(r => (r.min_days ?? 1) <= 1 && (r.max_days == null || r.max_days >= 1));
   let price = baseAdj;
   if (cover) price = Math.floor(baseAdj * (1 - Math.abs(cover.percent || 0) / 100));
+  // Weekend uplift for Fri/Sat
+  const d = new Date(ds + 'T00:00:00');
+  const day = d.getDay();
+  const isWeekend = day === 5 || day === 6;
+  const weekendPct = Number(rec.weekend_pct || rec.weekendPct || rec.weekend || 0);
+  if (isWeekend && weekendPct) price = Math.floor(price * (1 + Math.abs(weekendPct) / 100));
   const globalMin = Number(minPriceInput.value || 0);
   price = Math.max(price, minRate || 0, globalMin || 0);
   return price;
@@ -445,6 +458,37 @@ function renderCalendar() {
 propSelectCal?.addEventListener('change', renderCalendar);
 monthInput?.addEventListener('change', renderCalendar);
 
+function changeMonth(delta) {
+  if (!monthInput.value) return;
+  const [yy, mm] = monthInput.value.split('-').map(Number);
+  const d = new Date(yy, (mm - 1) + delta, 1);
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  monthInput.value = `${d.getFullYear()}-${m}`;
+  renderCalendar();
+  renderSeasonLegend();
+}
+prevMonthBtn?.addEventListener('click', () => changeMonth(-1));
+nextMonthBtn?.addEventListener('click', () => changeMonth(1));
+
+function renderSeasonLegend() {
+  if (!seasonLegendDiv) return;
+  const frag = document.createDocumentFragment();
+  for (const s of rulesState.seasons || []) {
+    const item = document.createElement('span');
+    item.className = 'legend-item';
+    const sw = document.createElement('i');
+    sw.className = 'swatch';
+    sw.style.background = s.color || seasonColor(Number(s.percent || 0));
+    sw.style.borderColor = '#888';
+    const txt = document.createElement('span');
+    txt.textContent = s.name || '(unnamed)';
+    item.appendChild(sw); item.appendChild(txt);
+    frag.appendChild(item);
+  }
+  seasonLegendDiv.innerHTML = '';
+  seasonLegendDiv.appendChild(frag);
+}
+
 // Keep rules file inputs in sync (3 fields)
 const rulesFile3 = document.getElementById('rulesFile3');
 rulesFileInput.addEventListener('input', () => { rulesFile2.value = rulesFileInput.value; rulesFile3.value = rulesFileInput.value; });
@@ -456,4 +500,4 @@ rulesFile3.addEventListener('change', () => { loadRules().catch(() => {}); });
 const origLoadProps = loadPropertiesAndRender;
 loadPropertiesAndRender = async function() { await origLoadProps(); syncCalProps(); };
 const origLoadRules = loadRules;
-loadRules = async function() { await origLoadRules(); renderSeasons(); updateBaseMinForSelectedProp(); renderLos(); renderCalendar(); };
+loadRules = async function() { await origLoadRules(); renderSeasons(); updateBaseMinForSelectedProp(); renderLos(); renderCalendar(); renderSeasonLegend(); };
