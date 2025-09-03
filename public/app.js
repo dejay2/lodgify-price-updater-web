@@ -212,7 +212,8 @@ runBtn.addEventListener('click', async () => {
   if (isNaN(sDate) || isNaN(eDate)) { log('Error: Invalid date(s)'); return; }
   if (eDate < sDate) { log('Error: End date must be on/after start date'); return; }
   const monthsDiff = (eDate.getFullYear() - sDate.getFullYear()) * 12 + (eDate.getMonth() - sDate.getMonth());
-  if (monthsDiff > 17) { log('Error: Date range exceeds 18 months'); return; }
+  const tooLong = monthsDiff > 18 || (monthsDiff === 18 && eDate.getDate() >= sDate.getDate());
+  if (tooLong) { log('Error: Date range exceeds 18 months'); return; }
   const body = {
     startDate: startDateInput.value,
     endDate: endDateInput.value,

@@ -84,7 +84,8 @@ app.post('/api/run-update', async (req, res) => {
       return res.status(400).json({ error: 'endDate must be on/after startDate' });
     }
     const monthsDiff = (eDate.getFullYear() - sDate.getFullYear()) * 12 + (eDate.getMonth() - sDate.getMonth());
-    if (monthsDiff > 17) {
+    const tooLong = monthsDiff > 18 || (monthsDiff === 18 && eDate.getDate() >= sDate.getDate());
+    if (tooLong) {
       return res.status(400).json({ error: 'Date range exceeds 18 months' });
     }
     const clamp01 = (v) => Math.max(0, Math.min(100, Number(v)));
