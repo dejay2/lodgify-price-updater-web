@@ -9,6 +9,9 @@ const dryRunInput = document.getElementById('dryRun');
 const loadPropsBtn = document.getElementById('loadProps');
 const runBtn = document.getElementById('runBtn');
 const importBookingsBtn = document.getElementById('importBookings');
+const importAllBookingsBtn = document.getElementById('importAllBookings');
+const syncUpdatesBtn = document.getElementById('syncUpdates');
+const lastSyncAtInput = document.getElementById('lastSyncAt');
 const propsDiv = document.getElementById('props');
 const logPre = document.getElementById('log');
 const rulesFileInput = document.getElementById('rulesFile');
@@ -80,6 +83,7 @@ function renderOrchestrator() {
   try { renderCalendar(); } catch {}
   try { renderSeasonLegend(); } catch {}
   try { ensureBookingsLoaded(); } catch {}
+  try { loadSyncState(); } catch {}
 }
 
 loadPropsBtn.addEventListener('click', () => { propsDiv.innerHTML = 'Loading…'; loadPropertiesAndRender(); });
@@ -203,21 +207,69 @@ runBtn.addEventListener('click', async () => {
   }
 });
 
-// Import upcoming bookings and persist to upcoming_bookings.json via server
+// Import upcoming bookings, persist to upcoming_bookings.json and merge to store
 importBookingsBtn.addEventListener('click', async () => {
   log('Importing upcoming bookings…');
   try {
     const qs = new URLSearchParams({ size: String(100) }).toString();
     const r = await fetch(`/api/bookings/upcoming?${qs}`, { headers: headers() });
-    const data = await r.json();
-    if (!r.ok) throw new Error(data?.error || `HTTP ${r.status}`);
-    log(`Imported ${data.itemsSaved} bookings (count=${data.count}, pages=${data.pages}) → ${data.saved}`);
+    const ct = r.headers.get('content-type') || '';
+    const data = ct.includes('application/json') ? await r.json() : { errorText: await r.text() };
+    if (!r.ok || !ct.includes('application/json')) {
+      const msg = data?.error || data?.errorText?.slice(0, 140) || `HTTP ${r.status}`;
+      throw new Error(msg);
+    }
+    log(`Imported ${data.itemsSaved} bookings (count=${data.count}, pages=${data.pages}) → ${data.saved}; merged ${data.mergedToStore}, removed ${data.removedFromStore ?? 0} (store ${data.storeCount})`);
     showToast('Upcoming bookings imported', 'success');
     await loadLocalBookings().catch(() => {});
     renderCalendar();
   } catch (e) {
     log(`Error importing bookings: ${e.message}`);
     showToast(`Failed to import: ${e.message}`, 'error', 5000);
+  }
+});
+
+// Import ALL bookings (historic + current + future) and merge to store
+importAllBookingsBtn.addEventListener('click', async () => {
+  log('Importing ALL bookings…');
+  try {
+    const qs = new URLSearchParams({ size: String(100) }).toString();
+    const r = await fetch(`/api/bookings/all?${qs}`, { headers: headers() });
+    const ct = r.headers.get('content-type') || '';
+    const data = ct.includes('application/json') ? await r.json() : { errorText: await r.text() };
+    if (!r.ok || !ct.includes('application/json')) {
+      const msg = data?.error || data?.errorText?.slice(0, 140) || `HTTP ${r.status}`;
+      throw new Error(msg);
+    }
+    log(`Imported ${data.itemsSaved} bookings (count=${data.count}, pages=${data.pages}) → ${data.saved}; merged ${data.mergedToStore}, removed ${data.removedFromStore ?? 0} (store ${data.storeCount})`);
+    showToast('All bookings imported', 'success');
+    await loadLocalBookings().catch(() => {});
+    renderCalendar();
+  } catch (e) {
+    log(`Error importing ALL bookings: ${e.message}`);
+    showToast(`Failed to import ALL: ${e.message}`, 'error', 5000);
+  }
+});
+
+// Sync updates since last run (server tracks lastSyncAt)
+syncUpdatesBtn.addEventListener('click', async () => {
+  log('Syncing booking updates since last run…');
+  try {
+    const r = await fetch('/api/bookings/sync-updates', { headers: headers() });
+    const ct = r.headers.get('content-type') || '';
+    const data = ct.includes('application/json') ? await r.json() : { errorText: await r.text() };
+    if (!r.ok || !ct.includes('application/json')) {
+      const msg = data?.error || data?.errorText?.slice(0, 140) || `HTTP ${r.status}`;
+      throw new Error(msg);
+    }
+    log(`Synced updates since '${data.sinceUsed}', fetched=${data.fetched}, merged=${data.mergedToStore}, removed=${data.removedFromStore ?? 0} (store=${data.storeCount}), nextSince='${data.nextSince}'`);
+    showToast('Updates synced', 'success');
+    if (lastSyncAtInput) lastSyncAtInput.value = data?.nextSince || '';
+    await loadLocalBookings().catch(() => {});
+    renderCalendar();
+  } catch (e) {
+    log(`Error syncing updates: ${e.message}`);
+    showToast(`Failed to sync: ${e.message}`, 'error', 5000);
   }
 });
 
@@ -438,11 +490,22 @@ let bookingsCache = null; // { items: [...], count, ... }
 let bookingsLoadStarted = false;
 async function loadLocalBookings() {
   try {
-    const r = await fetch('/api/bookings/local');
+    const r = await fetch('/api/bookings/store');
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     bookingsCache = await r.json();
   } catch {
     bookingsCache = null;
+  }
+}
+
+async function loadSyncState() {
+  try {
+    const r = await fetch('/api/bookings/sync-state');
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    if (lastSyncAtInput) lastSyncAtInput.value = data?.lastSyncAt || '';
+  } catch {
+    if (lastSyncAtInput) lastSyncAtInput.value = '';
   }
 }
 function ensureBookingsLoaded() {

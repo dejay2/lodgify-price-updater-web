@@ -60,3 +60,38 @@ export async function postRates(apiKey, payload) {
   const r = await c.post(`${BASE_V1}/rates/savewithoutavailability`, payload);
   return r.data;
 }
+
+// Fetch a page of ALL bookings (historic + current + future)
+export async function fetchAllBookingsPage(apiKey, { page = 1, size = 50 }) {
+  const c = client(apiKey);
+  const params = {
+    page,
+    size,
+    includeCount: true,
+    stayFilter: 'All',
+    includeTransactions: false,
+    includeExternal: true,
+    includeQuoteDetails: false,
+    trash: false,
+  };
+  const r = await c.get(`${BASE_V2}/reservations/bookings`, { params });
+  return r.data; // { count, items }
+}
+
+// Fetch a page of Upcoming bookings updated since a timestamp (YYYY-MM-DD HH:mm)
+export async function fetchUpcomingBookingsUpdatedSincePage(apiKey, { page = 1, size = 50, updatedSince }) {
+  const c = client(apiKey);
+  const params = {
+    page,
+    size,
+    includeCount: true,
+    stayFilter: 'Upcoming',
+    updatedSince, // axios handles URL encoding (space -> %20)
+    includeTransactions: false,
+    includeExternal: true,
+    includeQuoteDetails: false,
+    trash: false,
+  };
+  const r = await c.get(`${BASE_V2}/reservations/bookings`, { params });
+  return r.data; // { count, items }
+}
