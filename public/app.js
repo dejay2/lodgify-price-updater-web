@@ -490,13 +490,13 @@ function renderCalendar() {
         if (hasOverride) {
           cell.style.background = rulesState.settings?.override_color || '#ffd1dc';
         } else {
+          // No season background fill — use a thin indicator bar instead
           const season = getSeasonForDate(ds);
-          if (season && season.color) {
-            cell.style.background = season.color;
-          } else {
-            const seasonPct = getSeasonPctForDate(ds);
-            cell.style.background = seasonColor(seasonPct);
-          }
+          const bar = document.createElement('div');
+          bar.className = 'cal-season';
+          const col = season?.color || seasonColor(getSeasonPctForDate(ds));
+          bar.style.background = col;
+          cell.appendChild(bar);
         }
         const priceEl = document.createElement('div'); priceEl.className = 'cal-price';
         const p = computeOneNightPrice(ds, pid);
