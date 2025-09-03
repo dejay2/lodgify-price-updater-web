@@ -150,6 +150,17 @@ export function buildRatesFromRules({ propId, roomId, startDate, endDate, rules,
   const minRate = Number(baseCfg.min || baseCfg.minRate || 0);
   const weekendPct = Number(baseCfg.weekend_pct || 0);
   if (!base) return out;
+  // Default catch-all rate must be first. Lodgify requires an is_default=true
+  // entry without dates. This is used for any dates not covered by specific
+  // day entries. Price should be the Base Rate; min/max stay 2..30.
+  out.push({
+    is_default: true,
+    price_per_day: Math.floor(base),
+    min_stay: 2,
+    max_stay: 30,
+    price_per_additional_guest: Number(baseCfg.price_per_additional_guest || 0),
+    additional_guests_starts_from: Number(baseCfg.additional_guests_starts_from || 0),
+  });
   let losRules = Array.isArray(baseCfg.los) ? baseCfg.los.slice() : [];
   // Ensure non-overlapping, sorted tiers (defensive – saveRules also validates)
   losRules.sort((a, b) => (a.min_days ?? 0) - (b.min_days ?? 0));
