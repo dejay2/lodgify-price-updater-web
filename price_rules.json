@@ -245,5 +245,18 @@
       "percent": 0,
       "color": ""
     }
-  ]
+  ],
+  "overrides": {
+    "327020": [
+      {
+        "date": "2025-09-04",
+        "price": 1,
+        "min_stay": 1000,
+        "max_stay": 1000
+      }
+    ]
+  },
+  "settings": {
+    "override_color": "#ffd1dc"
+  }
 }

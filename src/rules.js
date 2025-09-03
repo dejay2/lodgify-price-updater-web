@@ -154,11 +154,14 @@ export function buildRatesFromRules({ propId, roomId, startDate, endDate, rules,
     }
   }
 
-  // iterate days inclusive
+  // helpers (local date handling; avoid UTC shifts)
+  const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const nextDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+  // iterate days inclusive using local dates
   const s = new Date(startDate + 'T00:00:00');
   const e = new Date(endDate + 'T00:00:00');
-  for (let d = new Date(s); d <= e; d = new Date(d.getTime() + 86400000)) {
-    const ds = d.toISOString().slice(0, 10);
+  for (let d = new Date(s); d <= e; d = nextDay(d)) {
+    const ds = ymd(d);
     // Overrides take precedence
     const ovrList = (rules.overrides && (rules.overrides[String(propId)] || rules.overrides[propId])) || [];
     const ovr = Array.isArray(ovrList) ? ovrList.find(o => o.date === ds) : null;
@@ -186,7 +189,7 @@ export function buildRatesFromRules({ propId, roomId, startDate, endDate, rules,
       tiers.push({ min_stay: r.min_days ?? 1, max_stay: r.max_days ?? null, percent: -Math.abs(r.percent) });
     }
     // Build rate entries per tier
-    const de = new Date(d.getTime() + 86400000).toISOString().slice(0, 10);
+    const de = ymd(nextDay(d));
     for (const t of tiers) {
       const discount = t.percent || 0; // negative values = discount
       let p = Math.floor(baseAdj * (1 + discount / 100));

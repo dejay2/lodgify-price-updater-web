@@ -469,7 +469,7 @@ function renderCalendar() {
       const cellDate = cells[i + j];
       const cell = document.createElement('div'); cell.className = 'cal-cell' + (!cellDate ? ' muted' : '');
       if (cellDate) {
-        const ds = cellDate.toISOString().slice(0, 10);
+        const ds = `${cellDate.getFullYear()}-${String(cellDate.getMonth()+1).padStart(2,'0')}-${String(cellDate.getDate()).padStart(2,'0')}`;
         const dateEl = document.createElement('div'); dateEl.className = 'cal-date'; dateEl.textContent = cellDate.getDate();
         // Background: override color > season color > derived shade
         const olist = rulesState.overrides?.[pid] || [];
