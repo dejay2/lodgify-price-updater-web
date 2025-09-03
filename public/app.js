@@ -319,7 +319,21 @@ function renderLos() {
 
 addLosBtn.addEventListener('click', () => {
   const list = getLosFor(propSelectRules.value);
-  list.push({ name: '', min_days: 1, max_days: null, percent: 0 });
+  // Sort existing by min_days
+  list.sort((a, b) => (a.min_days ?? 0) - (b.min_days ?? 0));
+  if (list.length === 0) {
+    // Sensible default first tier
+    list.push({ name: 'Default 2-6 nights', min_days: 2, max_days: 6, percent: 0 });
+  } else {
+    const last = list[list.length - 1];
+    // Determine next tier start just after the last tier's end (or min if open-ended)
+    const prevEnd = last.max_days != null ? Number(last.max_days) : Number(last.min_days ?? 1);
+    const newMin = (isFinite(prevEnd) ? prevEnd : 1) + 1;
+    // If the last tier was open-ended, cap it right before the new tier to avoid overlap
+    if (last.max_days == null) last.max_days = newMin - 1;
+    const newMax = newMin + 6; // 1-week span by default
+    list.push({ name: '', min_days: newMin, max_days: newMax, percent: 0 });
+  }
   renderLos();
 });
 
