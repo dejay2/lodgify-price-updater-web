@@ -161,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
     pages.forEach(p => p.classList.toggle('active', p.dataset.page === page));
   }
   tabs.forEach(t => t.addEventListener('click', () => show(t.dataset.page)));
-  show('properties');
+  show('calendar');
   // Automatically load properties on start
   propsDiv.innerHTML = 'Loading…';
   loadPropertiesAndRender()
