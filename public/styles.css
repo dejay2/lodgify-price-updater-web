@@ -107,3 +107,9 @@ button:active { transform: translateY(1px); }
 
 /* Thin season indicator bar */
 .cal-season { position: absolute; left: 0; right: 0; top: 0; height: 3px; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; opacity: 0.95; }
+
+/* Booking band */
+.cal-booking { position: absolute; left: 6px; right: 6px; bottom: 6px; height: 16px; border-radius: 6px; font-size: 0.72rem; line-height: 16px; text-align: center; color: #0b1220; font-weight: 700; letter-spacing: 0.2px; border: 1px solid rgba(0,0,0,0.25); box-shadow: 0 1px 2px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.12); z-index: 2; }
+.cal-booking.airbnb { background: #ef4444; color: #fff; border-color: rgba(255,255,255,0.2); }
+.cal-booking.booking { background: #3b82f6; color: #fff; border-color: rgba(255,255,255,0.2); }
+.cal-booking.other { background: #f59e0b; color: #1f2a3b; border-color: rgba(0,0,0,0.2); }

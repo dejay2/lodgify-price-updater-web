@@ -79,6 +79,7 @@ function renderOrchestrator() {
   // Calendar and legend
   try { renderCalendar(); } catch {}
   try { renderSeasonLegend(); } catch {}
+  try { ensureBookingsLoaded(); } catch {}
 }
 
 loadPropsBtn.addEventListener('click', () => { propsDiv.innerHTML = 'Loading…'; loadPropertiesAndRender(); });
@@ -212,6 +213,8 @@ importBookingsBtn.addEventListener('click', async () => {
     if (!r.ok) throw new Error(data?.error || `HTTP ${r.status}`);
     log(`Imported ${data.itemsSaved} bookings (count=${data.count}, pages=${data.pages}) → ${data.saved}`);
     showToast('Upcoming bookings imported', 'success');
+    await loadLocalBookings().catch(() => {});
+    renderCalendar();
   } catch (e) {
     log(`Error importing bookings: ${e.message}`);
     showToast(`Failed to import: ${e.message}`, 'error', 5000);
@@ -430,6 +433,45 @@ const ovrSave = document.getElementById('ovrSave');
 const ovrDelete = document.getElementById('ovrDelete');
 const ovrCancel = document.getElementById('ovrCancel');
 
+// --- Bookings cache (for calendar display) ---
+let bookingsCache = null; // { items: [...], count, ... }
+let bookingsLoadStarted = false;
+async function loadLocalBookings() {
+  try {
+    const r = await fetch('/api/bookings/local');
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    bookingsCache = await r.json();
+  } catch {
+    bookingsCache = null;
+  }
+}
+function ensureBookingsLoaded() {
+  if (bookingsLoadStarted) return;
+  bookingsLoadStarted = true;
+  loadLocalBookings().then(() => { try { renderCalendar(); } catch {} }).catch(() => {});
+}
+function getBookingPropId(b) {
+  return (
+    b?.property_id ?? b?.propertyId ?? b?.houseId ?? b?.accommodationId ?? b?.property?.id ?? b?.house?.id ?? null
+  );
+}
+function getBookingChannel(b) {
+  const raw = (b?.channelName ?? b?.channel ?? b?.source ?? b?.origin ?? '').toString().toLowerCase();
+  if (!raw) return 'other';
+  if (raw.includes('airbnb')) return 'airbnb';
+  if (raw.includes('booking')) return 'booking';
+  return 'other';
+}
+function getBookingDates(b) {
+  const inRaw = b?.arrivalDate ?? b?.checkIn ?? b?.checkInDate ?? b?.startDate ?? b?.arrival ?? null;
+  const outRaw = b?.departureDate ?? b?.checkOut ?? b?.checkOutDate ?? b?.endDate ?? b?.departure ?? null;
+  const fmt = (s) => (typeof s === 'string' && s.length >= 10 ? s.slice(0, 10) : null);
+  return [fmt(inRaw), fmt(outRaw)];
+}
+function dateInRange(ds, start, endExclusive) {
+  return !!(ds && start && endExclusive && ds >= start && ds < endExclusive);
+}
+
 // --- Range selection state for calendar ---
 const calSelection = { active: false, start: null, end: null };
 let calMouseUpHandler = null;
@@ -622,8 +664,8 @@ function renderCalendar() {
           cell.appendChild(bar);
         }
         const priceEl = document.createElement('div'); priceEl.className = 'cal-price';
-        const p = computeOneNightPrice(ds, pid);
-        priceEl.innerHTML = p !== '' ? `<span class="pill">£${p}</span>` : '<span class="pill">—</span>';
+    const p = computeOneNightPrice(ds, pid);
+    priceEl.innerHTML = p !== '' ? `<span class="pill">£${p}</span>` : '<span class="pill">—</span>';
         // LOS indicator: colored dot if a second LOS tier exists
         const rec = rulesState.baseRates[pid] || {};
         const los = Array.isArray(rec.los) ? rec.los.slice().sort((a,b)=>(a.min_days??0)-(b.min_days??0)) : [];
@@ -635,6 +677,27 @@ function renderCalendar() {
           dot.title = second?.name ? `Additional LOS: ${second.name}` : 'Additional LOS present';
           cell.appendChild(dot);
         }
+        // Booking band at bottom for Booked status only
+        try {
+          const pidNum = Number(pid);
+          const list = Array.isArray(bookingsCache?.items) ? bookingsCache.items : [];
+          const matches = list.filter(b => {
+            const status = (b?.status ?? b?.bookingStatus ?? '').toString().toLowerCase();
+            if (status !== 'booked') return false;
+            const propId = Number(getBookingPropId(b));
+            if (!isNaN(pidNum) && !isNaN(propId) && pidNum !== propId) return false;
+            const [cin, cout] = getBookingDates(b);
+            return dateInRange(ds, cin, cout);
+          });
+          if (matches.length > 0) {
+            const ch = getBookingChannel(matches[0]);
+            const band = document.createElement('div');
+            band.className = `cal-booking ${ch}`;
+            band.textContent = 'Booked';
+            cell.appendChild(band);
+          }
+        } catch {}
+
         cell.appendChild(dateEl); cell.appendChild(priceEl);
         // Range selection: mouse down to start, drag to extend, mouse up to finalize
         cell.addEventListener('mousedown', (e) => {
