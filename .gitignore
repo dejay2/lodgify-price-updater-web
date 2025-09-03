@@ -1,0 +1,34 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env & secrets
+.env
+.env.*
+*.pem
+
+# Builds / caches / coverage
+dist/
+build/
+.tmp/
+.temp/
+.cache/
+coverage/
+
+# Logs and generated payloads
+payload_logs/
+original_rates.json
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Archives
+*.tar.gz
+*.zip

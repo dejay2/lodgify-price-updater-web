@@ -1,0 +1,235 @@
+{
+  "baseRates": {
+    "327020": {
+      "base": 295,
+      "min": 100,
+      "los": [
+        {
+          "name": "Default 2-6 nights",
+          "min_days": 2,
+          "max_days": 6,
+          "percent": 0
+        }
+      ]
+    },
+    "327021": {
+      "base": 300,
+      "min": 100,
+      "los": [
+        {
+          "name": "Default 2-6 nights",
+          "min_days": 2,
+          "max_days": 6,
+          "percent": 0
+        }
+      ]
+    },
+    "327168": {
+      "base": 300,
+      "min": 100,
+      "los": [
+        {
+          "name": "Default 2-6 nights",
+          "min_days": 2,
+          "max_days": 6,
+          "percent": 0
+        }
+      ]
+    },
+    "327169": {
+      "base": 300,
+      "min": 100,
+      "los": [
+        {
+          "name": "Default 2-6 nights",
+          "min_days": 2,
+          "max_days": 6,
+          "percent": 0
+        }
+      ]
+    },
+    "327177": {
+      "base": 300,
+      "min": 100,
+      "los": [
+        {
+          "name": "Default 2-6 nights",
+          "min_days": 2,
+          "max_days": 6,
+          "percent": 0
+        }
+      ]
+    },
+    "327178": {
+      "base": 300,
+      "min": 100,
+      "los": [
+        {
+          "name": "Default 2-6 nights",
+          "min_days": 2,
+          "max_days": 6,
+          "percent": 0
+        }
+      ]
+    },
+    "591981": {
+      "base": 300,
+      "min": 100,
+      "los": [
+        {
+          "name": "Default 2-6 nights",
+          "min_days": 2,
+          "max_days": 6,
+          "percent": 0
+        }
+      ]
+    },
+    "602278": {
+      "base": 300,
+      "min": 100,
+      "los": [
+        {
+          "name": "Default 2-6 nights",
+          "min_days": 2,
+          "max_days": 6,
+          "percent": 0
+        }
+      ]
+    }
+  },
+  "seasons": [
+    {
+      "name": "Mid Season (Autumn Shoulder)",
+      "start": "2025-09-01",
+      "end": "2025-10-17",
+      "percent": 5,
+      "color": "#dc5050"
+    },
+    {
+      "name": "October Half Term",
+      "start": "2025-10-18",
+      "end": "2025-11-02",
+      "percent": 8,
+      "color": ""
+    },
+    {
+      "name": "Low Season (Nov-Early Dec)",
+      "start": "2025-11-03",
+      "end": "2025-12-18",
+      "percent": -20,
+      "color": "#1a59ea"
+    },
+    {
+      "name": "Christmas & New Year",
+      "start": "2025-12-19",
+      "end": "2026-01-04",
+      "percent": 20,
+      "color": ""
+    },
+    {
+      "name": "Low Season (Jan-Feb)",
+      "start": "2026-01-05",
+      "end": "2026-02-13",
+      "percent": -20,
+      "color": ""
+    },
+    {
+      "name": "February Half Term",
+      "start": "2026-02-14",
+      "end": "2026-02-22",
+      "percent": 10,
+      "color": ""
+    },
+    {
+      "name": "Mid Season (Late Winter)",
+      "start": "2026-02-23",
+      "end": "2026-03-27",
+      "percent": 0,
+      "color": ""
+    },
+    {
+      "name": "Easter Holidays",
+      "start": "2026-03-28",
+      "end": "2026-04-12",
+      "percent": 15,
+      "color": ""
+    },
+    {
+      "name": "Mid Season (Spring)",
+      "start": "2026-04-13",
+      "end": "2026-05-22",
+      "percent": 5,
+      "color": ""
+    },
+    {
+      "name": "Whitsun Half Term",
+      "start": "2026-05-23",
+      "end": "2026-05-31",
+      "percent": 12,
+      "color": ""
+    },
+    {
+      "name": "Mid Season (Early Summer)",
+      "start": "2026-06-01",
+      "end": "2026-07-17",
+      "percent": 5,
+      "color": ""
+    },
+    {
+      "name": "Kids Summer Holidays",
+      "start": "2026-07-18",
+      "end": "2026-09-01",
+      "percent": 25,
+      "color": ""
+    },
+    {
+      "name": "Mid Season (Autumn Shoulder)",
+      "start": "2026-09-02",
+      "end": "2026-10-16",
+      "percent": 5,
+      "color": ""
+    },
+    {
+      "name": "October Half Term",
+      "start": "2026-10-17",
+      "end": "2026-11-01",
+      "percent": 8,
+      "color": ""
+    },
+    {
+      "name": "Low Season (Nov-Early Dec)",
+      "start": "2026-11-02",
+      "end": "2026-12-18",
+      "percent": -20,
+      "color": ""
+    },
+    {
+      "name": "Christmas & New Year",
+      "start": "2026-12-19",
+      "end": "2027-01-03",
+      "percent": 20,
+      "color": ""
+    },
+    {
+      "name": "Low Season (Jan-Feb)",
+      "start": "2027-01-04",
+      "end": "2027-02-12",
+      "percent": -20,
+      "color": ""
+    },
+    {
+      "name": "February Half Term",
+      "start": "2027-02-13",
+      "end": "2027-02-21",
+      "percent": 10,
+      "color": ""
+    },
+    {
+      "name": "Low/Mid Season",
+      "start": "2027-02-22",
+      "end": "2027-02-28",
+      "percent": 0,
+      "color": ""
+    }
+  ]
+}

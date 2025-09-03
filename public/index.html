@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Lodgify Price Updater (Web)</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Lodgify Price Updater</h1>
+      <nav class="tabs">
+        <button data-page="properties" class="tab active">Properties</button>
+        <button data-page="seasons" class="tab">Seasons</button>
+        <button data-page="calendar" class="tab">Calendar</button>
+        <button data-page="run" class="tab">Run</button>
+      </nav>
+      <section class="card page" data-page="run">
+        <h2>Settings</h2>
+        <div class="grid">
+          <label>API Key<input id="apiKey" type="password" placeholder="Leave blank to use .env" /></label>
+          <label>Start Date<input id="startDate" type="date" /></label>
+          <label>End Date<input id="endDate" type="date" /></label>
+          <label>Window Days<input id="windowDays" type="number" value="30" min="0" max="365" /></label>
+          <label>Start Discount %<input id="startDiscountPct" type="number" value="30" step="0.5" /></label>
+          <label>End Discount %<input id="endDiscountPct" type="number" value="1" step="0.5" /></label>
+          <label>Minimum Price<input id="minPrice" type="number" value="0" step="1" /></label>
+          <label>Rules File<input id="rulesFile" type="text" value="price_rules.json" /></label>
+          <label class="checkbox"><input id="dryRun" type="checkbox" checked /> Dry Run</label>
+        </div>
+        <div class="actions">
+          <button id="loadProps">Load Properties</button>
+        </div>
+      </section>
+
+      <section class="card page" data-page="run">
+        <h2>Properties</h2>
+        <div id="props"></div>
+      </section>
+
+      <section class="card page" data-page="properties">
+        <h2>Properties</h2>
+        <div class="grid grid-4">
+          <label>Rules File<input id="rulesFile2" type="text" value="price_rules.json" /></label>
+          <label>Property<select id="propSelectRules"></select></label>
+          <label>Base Rate (£)<input id="baseRate" type="number" step="1" /></label>
+          <label>Min Rate (£)<input id="minRate" type="number" step="1" /></label>
+        </div>
+        <div class="actions">
+          <button id="loadRules">Load Rules</button>
+          <button id="saveRates">Save Base/Min</button>
+        </div>
+        <h3>Length-of-Stay Rates</h3>
+        <div id="los"></div>
+        <div class="actions">
+          <button id="addLos">Add LOS Rule</button>
+          <button id="saveLos">Save LOS</button>
+        </div>
+      </section>
+
+      <section class="card page" data-page="seasons">
+        <h2>Seasonal Rules</h2>
+        <div class="grid grid-4">
+          <label>Rules File<input id="rulesFile3" type="text" value="price_rules.json" /></label>
+        </div>
+        <div class="actions">
+          <button id="loadRules">Load Rules</button>
+        </div>
+        <h3>Seasons</h3>
+        <div id="seasons"></div>
+        <div class="actions">
+          <button id="addSeason">Add Season</button>
+          <button id="saveSeasons">Save Seasons</button>
+        </div>
+      </section>
+
+      <section class="card page" data-page="calendar">
+        <h2>Calendar</h2>
+        <div class="grid grid-4">
+          <label>Property<select id="propSelectCal"></select></label>
+          <label>Month<input id="monthInput" type="month" /></label>
+          <div></div><div></div>
+        </div>
+        <div class="legend">
+          <span class="legend-item"><i class="swatch swatch-low"></i>Low season</span>
+          <span class="legend-item"><i class="swatch swatch-mid"></i>Mid</span>
+          <span class="legend-item"><i class="swatch swatch-high"></i>High</span>
+        </div>
+        <div id="calendar" class="calendar"></div>
+      </section>
+
+      <section class="card page" data-page="run">
+        <h2>Run</h2>
+        <div class="actions">
+          <button id="runBtn">Run Update</button>
+        </div>
+        <pre id="log" class="log"></pre>
+      </section>
+  </main>
+  <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+  <script src="/app.js" type="module"></script>
+ </body>
+ </html>

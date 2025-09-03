@@ -1,0 +1,64 @@
+:root { color-scheme: light dark; }
+body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; padding: 0; }
+main { max-width: 960px; margin: 24px auto; padding: 0 16px; }
+h1 { font-size: 1.8rem; margin: 8px 0 24px; }
+.tabs { display: flex; gap: 8px; margin-bottom: 12px; border-bottom: 2px solid #ddd; }
+.tab { padding: 8px 12px; border: 1px solid #ccc; border-bottom: none; border-radius: 8px 8px 0 0; background: #f7f7f7; cursor: pointer; }
+.tab.active { background: #fff; border-color: #999; font-weight: 600; }
+.page { display: none; }
+.page.active { display: block; }
+.card { border: 1px solid #ccc; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+label { display: flex; flex-direction: column; gap: 4px; font-size: 0.9rem; }
+label.checkbox { display: flex; flex-direction: row; align-items: center; gap: 8px; }
+input[type="text"], input[type="date"], input[type="number"], input[type="password"] { padding: 8px; border: 1px solid #bbb; border-radius: 6px; }
+.actions { display: flex; gap: 8px; margin-top: 8px; }
+button { padding: 8px 12px; border-radius: 6px; border: 1px solid #888; cursor: pointer; }
+.prop-list { display: grid; grid-template-columns: 1fr; gap: 6px; max-height: 260px; overflow: auto; margin-top: 8px; }
+.prop-row { display: flex; align-items: center; gap: 8px; }
+.log { background: #111; color: #ddd; padding: 12px; min-height: 220px; max-height: 360px; overflow: auto; border-radius: 8px; }
+.error { color: #b00; }
+
+/* Calendar */
+.calendar { margin-top: 12px; border: 1px solid #ccc; border-radius: 8px; overflow: hidden; }
+.cal-header, .cal-row { display: grid; grid-template-columns: repeat(7, 1fr); }
+.cal-header div { background: #f1f1f1; padding: 8px; font-weight: 600; text-align: center; border-bottom: 1px solid #ddd; }
+.cal-cell { min-height: 96px; border-right: 1px solid #eee; border-bottom: 1px solid #eee; padding: 6px; position: relative; }
+.cal-cell:nth-child(7n) { border-right: none; }
+.cal-date { font-size: 0.85rem; opacity: 0.8; }
+.cal-price { font-size: 1.1rem; margin-top: 8px; }
+.cal-price input { font-size: 1rem; width: 90px; padding: 4px 6px; }
+.cal-edit { position: absolute; right: 6px; bottom: 6px; font-size: 0.8rem; padding: 4px 8px; border-radius: 6px; }
+.cal-cell.muted { background: #fafafa; color: #666; }
+.cal-cell.selected { outline: 2px solid #4a90e2; outline-offset: -2px; }
+.pill { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #e3f2ff; color: #035; border: 1px solid #9ad; font-size: 0.8rem; }
+.muted .pill { background: #f0f0f0; color: #555; border-color: #ddd; }
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: none; align-items: center; justify-content: center; }
+.modal .panel { background: white; color: black; min-width: 300px; border-radius: 8px; padding: 16px; }
+.modal.show { display: flex; }
+
+/* Bulk tools */
+.bulk { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+.bulk .field { display: flex; flex-direction: column; gap: 4px; }
+.weekdays { display: flex; gap: 6px; align-items: center; }
+
+/* Seasons list */
+.seasons-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.seasons-table th, .seasons-table td { border: 1px solid #ddd; padding: 6px; text-align: left; }
+.seasons-table th { background: #f5f5f5; }
+
+.legend { display: flex; gap: 12px; margin: 8px 0; align-items: center; }
+.legend-item { display: inline-flex; gap: 6px; align-items: center; font-size: 0.9rem; }
+.swatch { width: 16px; height: 16px; display: inline-block; border: 1px solid #888; border-radius: 3px; }
+.swatch-low { background: #e6f7ff; }
+.swatch-mid { background: #b3e5fc; }
+.swatch-high { background: #81d4fa; }
+
+/* Toasts */
+.toast-container { position: fixed; right: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 9999; }
+.toast { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 8px; border: 1px solid transparent; box-shadow: 0 2px 8px rgba(0,0,0,0.15); font-size: 0.9rem; animation: toast-in 160ms ease-out; }
+.toast-success { background: #e8f5e9; color: #1b5e20; border-color: #a5d6a7; }
+.toast-error { background: #ffebee; color: #b71c1c; border-color: #ef9a9a; }
+.toast-info { background: #e3f2fd; color: #0d47a1; border-color: #90caf9; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
