@@ -1,7 +1,7 @@
 {
   "baseRates": {
     "327020": {
-      "base": 100,
+      "base": 300,
       "min": 100,
       "los": [
         {
@@ -272,44 +272,7 @@
     }
   ],
   "overrides": {
-    "327020": [
-      {
-        "date": "2025-09-04",
-        "price": 1,
-        "min_stay": 1000,
-        "max_stay": 1000
-      },
-      {
-        "date": "2025-09-05",
-        "price": 155,
-        "min_stay": 100,
-        "max_stay": 100
-      },
-      {
-        "date": "2025-09-10",
-        "price": 200,
-        "min_stay": 2,
-        "max_stay": 4
-      },
-      {
-        "date": "2025-09-11",
-        "price": 200,
-        "min_stay": 2,
-        "max_stay": 4
-      },
-      {
-        "date": "2025-09-12",
-        "price": 200,
-        "min_stay": 2,
-        "max_stay": 4
-      },
-      {
-        "date": "2025-09-13",
-        "price": 200,
-        "min_stay": 2,
-        "max_stay": 4
-      }
-    ],
+    "327020": [],
     "327021": [
       {
         "date": "2025-09-05",
@@ -317,9 +280,18 @@
         "min_stay": 2,
         "max_stay": 10
       }
+    ],
+    "327168": [],
+    "327178": [
+      {
+        "date": "2025-11-27",
+        "price": 100,
+        "min_stay": null,
+        "max_stay": null
+      }
     ]
   },
   "settings": {
-    "override_color": "#ff0000"
+    "override_color": "#e1ff00"
   }
 }
