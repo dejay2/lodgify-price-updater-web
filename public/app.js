@@ -413,6 +413,67 @@ const ovrSave = document.getElementById('ovrSave');
 const ovrDelete = document.getElementById('ovrDelete');
 const ovrCancel = document.getElementById('ovrCancel');
 
+// --- Range selection state for calendar ---
+const calSelection = { active: false, start: null, end: null };
+let calMouseUpHandler = null;
+function clearCalSelection() {
+  calSelection.active = false; calSelection.start = null; calSelection.end = null;
+  calDiv.querySelectorAll('.cal-cell.selected').forEach(el => el.classList.remove('selected'));
+}
+function datesInRange(startDs, endDs) {
+  const a = startDs < endDs ? startDs : endDs;
+  const b = startDs < endDs ? endDs : startDs;
+  const out = [];
+  const sd = new Date(a + 'T00:00:00');
+  const ed = new Date(b + 'T00:00:00');
+  for (let d = new Date(sd); d <= ed; d.setDate(d.getDate() + 1)) {
+    out.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
+  }
+  return out;
+}
+function highlightRange(startDs, endDs) {
+  const a = startDs < endDs ? startDs : endDs;
+  const b = startDs < endDs ? endDs : startDs;
+  calDiv.querySelectorAll('.cal-cell[data-date]').forEach(el => {
+    const ds = el.getAttribute('data-date');
+    const sel = ds >= a && ds <= b;
+    el.classList.toggle('selected', sel);
+  });
+}
+
+// Convert a hex color (e.g. #rrggbb or #rgb or #rrggbbaa) to rgba(r,g,b,a)
+// If parsing fails, returns the original string.
+function hexToRgba(hex, alpha = 0.22) {
+  try {
+    if (typeof hex !== 'string') return hex;
+    const h = hex.trim();
+    if (!h.startsWith('#')) return hex;
+    let r, g, b, a = 1;
+    if (h.length === 4) { // #rgb
+      r = parseInt(h[1] + h[1], 16);
+      g = parseInt(h[2] + h[2], 16);
+      b = parseInt(h[3] + h[3], 16);
+    } else if (h.length === 7) { // #rrggbb
+      r = parseInt(h.slice(1, 3), 16);
+      g = parseInt(h.slice(3, 5), 16);
+      b = parseInt(h.slice(5, 7), 16);
+    } else if (h.length === 9) { // #rrggbbaa
+      r = parseInt(h.slice(1, 3), 16);
+      g = parseInt(h.slice(3, 5), 16);
+      b = parseInt(h.slice(5, 7), 16);
+      a = parseInt(h.slice(7, 9), 16) / 255;
+    } else {
+      return hex;
+    }
+    // If input already had alpha (#rrggbbaa), respect it; otherwise apply provided alpha
+    const hasExplicitAlpha = (h.length === 9);
+    const outA = hasExplicitAlpha ? a : Math.max(0, Math.min(1, alpha));
+    return `rgba(${r}, ${g}, ${b}, ${outA})`;
+  } catch {
+    return hex;
+  }
+}
+
 function syncCalProps() {
   propSelectCal.innerHTML = '';
   for (const p of allPropsCache) {
@@ -519,6 +580,7 @@ function renderCalendar() {
       const cell = document.createElement('div'); cell.className = 'cal-cell' + (!cellDate ? ' muted' : '');
       if (cellDate) {
         const ds = `${cellDate.getFullYear()}-${String(cellDate.getMonth()+1).padStart(2,'0')}-${String(cellDate.getDate()).padStart(2,'0')}`;
+        cell.dataset.date = ds;
         const dateEl = document.createElement('div'); dateEl.className = 'cal-date'; dateEl.textContent = cellDate.getDate();
         // Flags
         const olist = rulesState.overrides?.[pid] || [];
@@ -531,7 +593,8 @@ function renderCalendar() {
         if (hasOverride) cell.classList.add('override');
         // Background: override color > season color > derived shade
         if (hasOverride) {
-          cell.style.background = rulesState.settings?.override_color || '#ffd1dc';
+          const baseCol = rulesState.settings?.override_color || '#ffd1dc';
+          cell.style.background = hexToRgba(baseCol, 0.22);
         } else {
           // No season background fill — use a thin indicator bar instead
           const season = getSeasonForDate(ds);
@@ -556,8 +619,31 @@ function renderCalendar() {
           cell.appendChild(dot);
         }
         cell.appendChild(dateEl); cell.appendChild(priceEl);
-        // Click to open override editor for this date
-        cell.addEventListener('click', () => openOverrideModal(ds));
+        // Range selection: mouse down to start, drag to extend, mouse up to finalize
+        cell.addEventListener('mousedown', (e) => {
+          if (!ds) return;
+          e.preventDefault();
+          calSelection.active = true; calSelection.start = ds; calSelection.end = ds;
+          highlightRange(calSelection.start, calSelection.end);
+          if (!calMouseUpHandler) {
+            calMouseUpHandler = (ev) => {
+              if (!calSelection.active) return;
+              const start = calSelection.start; const end = calSelection.end || calSelection.start;
+              const list = datesInRange(start, end);
+              clearCalSelection();
+              document.removeEventListener('mouseup', calMouseUpHandler);
+              calMouseUpHandler = null;
+              if (list.length > 1) openRangeOverrideModal(list);
+              else if (list.length === 1) openOverrideModal(list[0]);
+            };
+            document.addEventListener('mouseup', calMouseUpHandler);
+          }
+        });
+        cell.addEventListener('mouseenter', (e) => {
+          if (!calSelection.active || !calSelection.start) return;
+          calSelection.end = ds;
+          highlightRange(calSelection.start, calSelection.end);
+        });
       }
       row.appendChild(cell);
     }
@@ -565,6 +651,7 @@ function renderCalendar() {
   }
   calDiv.innerHTML = '';
   calDiv.appendChild(frag);
+  // Mouseup handler is bound on demand when selection starts
 }
 
 propSelectCal?.addEventListener('change', renderCalendar);
@@ -652,6 +739,63 @@ function openOverrideModal(ds) {
     if (idx >= 0) list.splice(idx, 1);
     await saveRules().catch(e => showToast(e.message, 'error'));
     showToast('Override removed', 'success');
+    closeOverrideModal();
+    renderCalendar();
+  };
+  ovrCancel.onclick = () => closeOverrideModal();
+  const onBackdrop = (e) => { if (e.target === overrideModal) { closeOverrideModal(); overrideModal.removeEventListener('click', onBackdrop); } };
+  overrideModal.addEventListener('click', onBackdrop);
+}
+
+function openRangeOverrideModal(dateList) {
+  if (!Array.isArray(dateList) || dateList.length === 0) return;
+  const pid = propSelectCal.value;
+  const prop = (allPropsCache || []).find(p => String(p.id) === String(pid));
+  if (!rulesState.overrides) rulesState.overrides = {};
+  const list = rulesState.overrides[pid] || (rulesState.overrides[pid] = []);
+  const sorted = dateList.slice().sort();
+  const start = sorted[0];
+  const end = sorted[sorted.length - 1];
+  ovrDateDisplay.textContent = `${start} → ${end} (${sorted.length} days)`;
+  ovrPropName.textContent = prop?.name ? `(${prop.name})` : `Property ${pid}`;
+  // For range, do not prefill from a single day; leave empty
+  ovrPrice.value = '';
+  ovrMin.value = '';
+  ovrMax.value = '';
+  overrideModal.classList.add('show');
+  overrideModal.setAttribute('aria-hidden', 'false');
+
+  ovrSave.onclick = async () => {
+    const price = Number(ovrPrice.value || 0);
+    const min_stay = ovrMin.value ? Number(ovrMin.value) : null;
+    const max_stay = ovrMax.value ? Number(ovrMax.value) : null;
+    if (price > 0) {
+      for (const ds of sorted) {
+        const idx = list.findIndex(o => o.date === ds);
+        const rec = { date: ds, price, min_stay, max_stay };
+        if (idx >= 0) list[idx] = rec; else list.push(rec);
+      }
+      await saveRules().catch(e => showToast(e.message, 'error'));
+      showToast(`Overrides saved for ${sorted.length} days`, 'success');
+    } else {
+      // If price not set, treat as removal for range
+      for (const ds of sorted) {
+        const idx = list.findIndex(o => o.date === ds);
+        if (idx >= 0) list.splice(idx, 1);
+      }
+      await saveRules().catch(e => showToast(e.message, 'error'));
+      showToast(`Overrides removed for ${sorted.length} days`, 'success');
+    }
+    closeOverrideModal();
+    renderCalendar();
+  };
+  ovrDelete.onclick = async () => {
+    for (const ds of sorted) {
+      const idx = list.findIndex(o => o.date === ds);
+      if (idx >= 0) list.splice(idx, 1);
+    }
+    await saveRules().catch(e => showToast(e.message, 'error'));
+    showToast(`Overrides removed for ${sorted.length} days`, 'success');
     closeOverrideModal();
     renderCalendar();
   };

@@ -32,7 +32,7 @@
           "min_days": 2,
           "max_days": 6,
           "percent": 0,
-          "color": ""
+          "color": "#ec8e8e"
         }
       ],
       "weekend_pct": 20,
@@ -52,8 +52,8 @@
         }
       ],
       "weekend_pct": 10,
-      "price_per_additional_guest": 0,
-      "additional_guests_starts_from": 0
+      "price_per_additional_guest": 5,
+      "additional_guests_starts_from": 2
     },
     "327169": {
       "base": 300,
@@ -284,10 +284,42 @@
         "price": 155,
         "min_stay": 100,
         "max_stay": 100
+      },
+      {
+        "date": "2025-09-10",
+        "price": 200,
+        "min_stay": 2,
+        "max_stay": 4
+      },
+      {
+        "date": "2025-09-11",
+        "price": 200,
+        "min_stay": 2,
+        "max_stay": 4
+      },
+      {
+        "date": "2025-09-12",
+        "price": 200,
+        "min_stay": 2,
+        "max_stay": 4
+      },
+      {
+        "date": "2025-09-13",
+        "price": 200,
+        "min_stay": 2,
+        "max_stay": 4
+      }
+    ],
+    "327021": [
+      {
+        "date": "2025-09-05",
+        "price": 200,
+        "min_stay": 2,
+        "max_stay": 10
       }
     ]
   },
   "settings": {
-    "override_color": "#ffd1dc"
+    "override_color": "#ff0000"
   }
 }
