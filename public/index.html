@@ -84,11 +84,27 @@
             <button id="prevMonth">◀ Prev</button>
             <button id="nextMonth">Next ▶</button>
           </div>
-          <div></div>
+          <label>Override Color<input id="overrideColor" type="color" value="#ffd1dc" /></label>
         </div>
         <div id="seasonLegend" class="legend"></div>
         <div id="calendar" class="calendar"></div>
       </section>
+      <div id="overrideModal" class="modal" aria-hidden="true">
+        <div class="panel">
+          <h3>Day Override</h3>
+          <div><strong id="ovrDateDisplay"></strong> — <span id="ovrPropName"></span></div>
+          <div class="grid">
+            <label>Price (£)<input id="ovrPrice" type="number" step="1" /></label>
+            <label>Min Stay<input id="ovrMin" type="number" step="1" min="1" /></label>
+            <label>Max Stay<input id="ovrMax" type="number" step="1" min="1" /></label>
+          </div>
+          <div class="actions">
+            <button id="ovrSave">Save</button>
+            <button id="ovrDelete">Remove</button>
+            <button id="ovrCancel">Cancel</button>
+          </div>
+        </div>
+      </div>
 
       <section class="card page" data-page="run">
         <h2>Run</h2>

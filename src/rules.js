@@ -19,7 +19,7 @@ export async function loadRules(file) {
     const data = JSON.parse(t);
     return normalizeRules(data);
   } catch {
-    return { baseRates: {}, seasons: [] };
+    return { baseRates: {}, seasons: [], overrides: {}, settings: { override_color: '#ffd1dc' } };
   }
 }
 
@@ -82,7 +82,23 @@ function normalizeRules(r, opts = {}) {
     percent: Number(s.percent || 0),
     color: typeof s.color === 'string' ? s.color : '',
   })) : [];
-  return { baseRates, seasons };
+  // Overrides per property
+  const overrides = {};
+  if (raw.overrides && typeof raw.overrides === 'object') {
+    for (const pid of Object.keys(raw.overrides)) {
+      const list = Array.isArray(raw.overrides[pid]) ? raw.overrides[pid] : [];
+      overrides[pid] = list.map(o => ({
+        date: o.date,
+        price: Number(o.price || 0),
+        min_stay: o.min_stay != null ? Number(o.min_stay) : null,
+        max_stay: o.max_stay != null ? Number(o.max_stay) : null,
+      })).filter(o => typeof o.date === 'string' && o.date.length === 10 && o.price > 0);
+    }
+  }
+  const settings = {
+    override_color: typeof raw.settings?.override_color === 'string' ? raw.settings.override_color : '#ffd1dc',
+  };
+  return { baseRates, seasons, overrides, settings };
 }
 
 export function seasonPercentForDate(date, seasons) {
@@ -143,6 +159,23 @@ export function buildRatesFromRules({ propId, roomId, startDate, endDate, rules,
   const e = new Date(endDate + 'T00:00:00');
   for (let d = new Date(s); d <= e; d = new Date(d.getTime() + 86400000)) {
     const ds = d.toISOString().slice(0, 10);
+    // Overrides take precedence
+    const ovrList = (rules.overrides && (rules.overrides[String(propId)] || rules.overrides[propId])) || [];
+    const ovr = Array.isArray(ovrList) ? ovrList.find(o => o.date === ds) : null;
+    if (ovr) {
+      const de = new Date(d.getTime() + 86400000).toISOString().slice(0, 10);
+      out.push({
+        is_default: false,
+        start_date: ds,
+        end_date: de,
+        price_per_day: Math.floor(Number(ovr.price)),
+        min_stay: ovr.min_stay != null ? Number(ovr.min_stay) : 1,
+        max_stay: ovr.max_stay != null ? Number(ovr.max_stay) : null,
+        price_per_additional_guest: 0,
+        additional_guests_starts_from: 0,
+      });
+      continue;
+    }
     const discountPct = computeDiscountPct({ date: ds, windowDays: settings.windowDays, startDiscountPct: settings.startDiscountPct, endDiscountPct: settings.endDiscountPct });
     const baseAdj = computeBaseForDate({ date: ds, base, seasons: rules.seasons, discountPct });
     if (baseAdj == null) continue;

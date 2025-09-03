@@ -207,7 +207,10 @@ async function loadRules() {
   const qs = new URLSearchParams({ rulesFile: file }).toString();
   const r = await fetch(`/api/rules?${qs}`);
   const data = await r.json();
-  rulesState = data || { baseRates: {}, seasons: [] };
+  rulesState = data || { baseRates: {}, seasons: [], overrides: {}, settings: {} };
+  if (!rulesState.overrides) rulesState.overrides = {};
+  if (!rulesState.settings) rulesState.settings = {};
+  if (overrideColorInput) overrideColorInput.value = rulesState.settings.override_color || '#ffd1dc';
   renderSeasons();
   updateBaseMinForSelectedProp();
 }
@@ -256,7 +259,9 @@ function updateBaseMinForSelectedProp() {
 
 async function saveRules() {
   const file = rulesFile2.value || 'price_rules.json';
-  const body = { rulesFile: file, baseRates: rulesState.baseRates, seasons: rulesState.seasons };
+  if (!rulesState.settings) rulesState.settings = {};
+  rulesState.settings.override_color = overrideColorInput?.value || rulesState.settings.override_color || '#ffd1dc';
+  const body = { rulesFile: file, baseRates: rulesState.baseRates, seasons: rulesState.seasons, overrides: rulesState.overrides || {}, settings: rulesState.settings };
   const r = await fetch('/api/rules', { method: 'POST', headers: headers(), body: JSON.stringify(body) });
   if (!r.ok) {
     let msg = 'Failed to save rules';
@@ -352,6 +357,16 @@ const calDiv = document.getElementById('calendar');
 const seasonLegendDiv = document.getElementById('seasonLegend');
 const prevMonthBtn = document.getElementById('prevMonth');
 const nextMonthBtn = document.getElementById('nextMonth');
+const overrideColorInput = document.getElementById('overrideColor');
+const overrideModal = document.getElementById('overrideModal');
+const ovrDateDisplay = document.getElementById('ovrDateDisplay');
+const ovrPropName = document.getElementById('ovrPropName');
+const ovrPrice = document.getElementById('ovrPrice');
+const ovrMin = document.getElementById('ovrMin');
+const ovrMax = document.getElementById('ovrMax');
+const ovrSave = document.getElementById('ovrSave');
+const ovrDelete = document.getElementById('ovrDelete');
+const ovrCancel = document.getElementById('ovrCancel');
 
 function syncCalProps() {
   propSelectCal.innerHTML = '';
@@ -397,6 +412,12 @@ function computeOneNightPrice(ds, pid) {
   const base = Number(rec.base || 0);
   if (!base) return '';
   const minRate = Number(rec.min || 0);
+  // Override check
+  const olist = rulesState.overrides?.[pid] || [];
+  const ovr = Array.isArray(olist) ? olist.find(o => o.date === ds) : null;
+  if (ovr && ovr.price > 0) {
+    return Math.floor(Number(ovr.price));
+  }
   const seasonPct = getSeasonPctForDate(ds);
   const baseAdj = Math.floor(base * (1 + seasonPct / 100));
   // find LOS that covers 1 night
@@ -450,12 +471,19 @@ function renderCalendar() {
       if (cellDate) {
         const ds = cellDate.toISOString().slice(0, 10);
         const dateEl = document.createElement('div'); dateEl.className = 'cal-date'; dateEl.textContent = cellDate.getDate();
-        const season = getSeasonForDate(ds);
-        if (season && season.color) {
-          cell.style.background = season.color;
+        // Background: override color > season color > derived shade
+        const olist = rulesState.overrides?.[pid] || [];
+        const hasOverride = Array.isArray(olist) ? olist.some(o => o.date === ds) : false;
+        if (hasOverride) {
+          cell.style.background = rulesState.settings?.override_color || '#ffd1dc';
         } else {
-          const seasonPct = getSeasonPctForDate(ds);
-          cell.style.background = seasonColor(seasonPct);
+          const season = getSeasonForDate(ds);
+          if (season && season.color) {
+            cell.style.background = season.color;
+          } else {
+            const seasonPct = getSeasonPctForDate(ds);
+            cell.style.background = seasonColor(seasonPct);
+          }
         }
         const priceEl = document.createElement('div'); priceEl.className = 'cal-price';
         const p = computeOneNightPrice(ds, pid);
@@ -472,6 +500,8 @@ function renderCalendar() {
           cell.appendChild(dot);
         }
         cell.appendChild(dateEl); cell.appendChild(priceEl);
+        // Click to open override editor for this date
+        cell.addEventListener('click', () => openOverrideModal(ds));
       }
       row.appendChild(cell);
     }
@@ -527,6 +557,56 @@ function renderSeasonLegend() {
   }
   seasonLegendDiv.innerHTML = '';
   seasonLegendDiv.appendChild(frag);
+}
+
+function openOverrideModal(ds) {
+  const pid = propSelectCal.value;
+  const prop = (allPropsCache || []).find(p => String(p.id) === String(pid));
+  if (!rulesState.overrides) rulesState.overrides = {};
+  const list = rulesState.overrides[pid] || (rulesState.overrides[pid] = []);
+  const existing = list.find(o => o.date === ds) || null;
+  ovrDateDisplay.textContent = ds;
+  ovrPropName.textContent = prop?.name ? `(${prop.name})` : `Property ${pid}`;
+  ovrPrice.value = existing?.price ?? '';
+  ovrMin.value = existing?.min_stay ?? '';
+  ovrMax.value = existing?.max_stay ?? '';
+  overrideModal.classList.add('show');
+  overrideModal.setAttribute('aria-hidden', 'false');
+
+  ovrSave.onclick = async () => {
+    const price = Number(ovrPrice.value || 0);
+    const min_stay = ovrMin.value ? Number(ovrMin.value) : null;
+    const max_stay = ovrMax.value ? Number(ovrMax.value) : null;
+    const idx = list.findIndex(o => o.date === ds);
+    if (price > 0) {
+      const rec = { date: ds, price, min_stay, max_stay };
+      if (idx >= 0) list[idx] = rec; else list.push(rec);
+      await saveRules().catch(e => showToast(e.message, 'error'));
+      showToast('Override saved', 'success');
+    } else {
+      if (idx >= 0) list.splice(idx, 1);
+      await saveRules().catch(e => showToast(e.message, 'error'));
+      showToast('Override removed', 'success');
+    }
+    closeOverrideModal();
+    renderCalendar();
+  };
+  ovrDelete.onclick = async () => {
+    const idx = list.findIndex(o => o.date === ds);
+    if (idx >= 0) list.splice(idx, 1);
+    await saveRules().catch(e => showToast(e.message, 'error'));
+    showToast('Override removed', 'success');
+    closeOverrideModal();
+    renderCalendar();
+  };
+  ovrCancel.onclick = () => closeOverrideModal();
+  const onBackdrop = (e) => { if (e.target === overrideModal) { closeOverrideModal(); overrideModal.removeEventListener('click', onBackdrop); } };
+  overrideModal.addEventListener('click', onBackdrop);
+}
+
+function closeOverrideModal() {
+  overrideModal.classList.remove('show');
+  overrideModal.setAttribute('aria-hidden', 'true');
 }
 
 // Keep rules file inputs in sync (3 fields)

@@ -105,7 +105,12 @@ app.post('/api/rules', async (req, res) => {
     const file = req.body.rulesFile || 'price_rules.json';
     const body = req.body || {};
     if (!body.baseRates || !body.seasons) return res.status(400).json({ error: 'baseRates and seasons are required' });
-    await saveRules(file, { baseRates: body.baseRates, seasons: body.seasons });
+    await saveRules(file, {
+      baseRates: body.baseRates,
+      seasons: body.seasons,
+      overrides: body.overrides || {},
+      settings: body.settings || {},
+    });
     res.json({ ok: true });
   } catch (err) {
     // Surface validation errors clearly
