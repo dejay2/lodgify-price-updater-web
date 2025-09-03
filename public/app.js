@@ -448,6 +448,9 @@ function seasonColor(pct) {
 }
 
 function renderCalendar() {
+  // trigger subtle animation
+  calDiv.classList.add('cal-animate');
+  setTimeout(() => calDiv.classList.remove('cal-animate'), 220);
   const ym = monthInput.value;
   if (!ym) return;
   const pid = propSelectCal.value;
@@ -474,9 +477,16 @@ function renderCalendar() {
       if (cellDate) {
         const ds = `${cellDate.getFullYear()}-${String(cellDate.getMonth()+1).padStart(2,'0')}-${String(cellDate.getDate()).padStart(2,'0')}`;
         const dateEl = document.createElement('div'); dateEl.className = 'cal-date'; dateEl.textContent = cellDate.getDate();
-        // Background: override color > season color > derived shade
+        // Flags
         const olist = rulesState.overrides?.[pid] || [];
         const hasOverride = Array.isArray(olist) ? olist.some(o => o.date === ds) : false;
+        const day = cellDate.getDay();
+        const isWeekend = day === 5 || day === 6;
+        const today = new Date(); const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+        if (isWeekend) cell.classList.add('weekend');
+        if (ds === todayStr) cell.classList.add('today');
+        if (hasOverride) cell.classList.add('override');
+        // Background: override color > season color > derived shade
         if (hasOverride) {
           cell.style.background = rulesState.settings?.override_color || '#ffd1dc';
         } else {
