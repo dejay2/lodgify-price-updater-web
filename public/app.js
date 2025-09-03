@@ -116,6 +116,9 @@ function syncRulesPropSelect() {
     opt.textContent = `${p.name ?? 'Unnamed'} (ID ${p.id})`;
     propSelectRules.appendChild(opt);
   }
+  if (!propSelectRules.value && propSelectRules.options.length) {
+    propSelectRules.selectedIndex = 0;
+  }
   updateBaseMinForSelectedProp();
 }
 
@@ -218,6 +221,8 @@ async function loadRules() {
   if (overrideColorInput) overrideColorInput.value = rulesState.settings.override_color || '#ffd1dc';
   renderSeasons();
   updateBaseMinForSelectedProp();
+  // Ensure LOS renders immediately after rules load
+  try { renderLos(); } catch {}
 }
 
 function renderSeasons() {
