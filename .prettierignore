@@ -1,0 +1,6 @@
+node_modules/
+payload_logs/
+dist/
+build/
+coverage/
+
