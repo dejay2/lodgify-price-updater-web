@@ -63,7 +63,7 @@ function normalizeRules(r, opts = {}) {
     for (const x of los) {
       const minD = Math.max(1, Number.isFinite(x.min_days) ? x.min_days : 1);
       const maxD = x.max_days == null ? null : Math.max(minD, Number(x.max_days));
-      const item = { name: x.name || '', min_days: minD, max_days: maxD, percent: Number(x.percent || 0) };
+      const item = { name: x.name || '', min_days: minD, max_days: maxD, percent: Number(x.percent || 0), color: typeof x.color === 'string' ? x.color : '' };
       if (cleaned.length) {
         const prev = cleaned[cleaned.length - 1];
         const prevMax = prev.max_days;
