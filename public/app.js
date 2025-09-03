@@ -121,6 +121,10 @@ function renderProperties(props) {
     const name = document.createElement('span');
     name.textContent = `${p.name ?? 'Unnamed'} (ID ${p.id})`;
     row.appendChild(name);
+    // Reflect selection state visually
+    cb.addEventListener('change', () => {
+      row.classList.toggle('selected', cb.checked);
+    });
     container.appendChild(row);
   }
   propsDiv.innerHTML = '';
@@ -128,10 +132,10 @@ function renderProperties(props) {
   actions.className = 'actions';
   const selectAll = document.createElement('button');
   selectAll.textContent = 'Select All';
-  selectAll.onclick = () => container.querySelectorAll('input[type=checkbox]').forEach(c => c.checked = true);
+  selectAll.onclick = () => container.querySelectorAll('input[type=checkbox]').forEach(c => { c.checked = true; c.dispatchEvent(new Event('change')); });
   const deselectAll = document.createElement('button');
   deselectAll.textContent = 'Deselect All';
-  deselectAll.onclick = () => container.querySelectorAll('input[type=checkbox]').forEach(c => c.checked = false);
+  deselectAll.onclick = () => container.querySelectorAll('input[type=checkbox]').forEach(c => { c.checked = false; c.dispatchEvent(new Event('change')); });
   actions.appendChild(selectAll);
   actions.appendChild(deselectAll);
   propsDiv.appendChild(actions);
