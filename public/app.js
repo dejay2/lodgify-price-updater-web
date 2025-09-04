@@ -31,6 +31,17 @@ const seasonsDiv = document.getElementById('seasons');
 const addSeasonBtn = document.getElementById('addSeason');
 const saveSeasonsBtn = document.getElementById('saveSeasons');
 const toastContainer = document.getElementById('toast-container');
+// Jitter settings UI
+const jitterEnabledInput = document.getElementById('jitterEnabled');
+const jitterIntervalInput = document.getElementById('jitterInterval');
+const jitterLookaheadInput = document.getElementById('jitterLookahead');
+const jitterBlockNearInput = document.getElementById('jitterBlockNear');
+const jitterDatesPerRunInput = document.getElementById('jitterDatesPerRun');
+const jitterMarkdownMinInput = document.getElementById('jitterMarkdownMin');
+const jitterMarkdownMaxInput = document.getElementById('jitterMarkdownMax');
+const jitterMarkupMinInput = document.getElementById('jitterMarkupMin');
+const jitterMarkupMaxInput = document.getElementById('jitterMarkupMax');
+const jitterSeedInput = document.getElementById('jitterSeed');
 
 // Default date range: today -> 18 months ahead (server enforces; UI displays if inputs exist)
 function fmtDate(d) {
@@ -432,6 +443,23 @@ async function loadRules() {
   if (!rulesState.settings) rulesState.settings = {};
   if (overrideColorInput)
     overrideColorInput.value = rulesState.settings.override_color || '#ffd1dc';
+  // Jitter settings → UI
+  if (jitterEnabledInput) jitterEnabledInput.checked = !!rulesState.settings.auto_jitter_enabled;
+  if (jitterIntervalInput)
+    jitterIntervalInput.value = rulesState.settings.jitter_interval_minutes ?? 60;
+  if (jitterLookaheadInput)
+    jitterLookaheadInput.value = rulesState.settings.jitter_lookahead_days ?? 30;
+  if (jitterBlockNearInput)
+    jitterBlockNearInput.value = rulesState.settings.jitter_block_near_days ?? 2;
+  if (jitterDatesPerRunInput)
+    jitterDatesPerRunInput.value = rulesState.settings.jitter_dates_per_run ?? 2;
+  if (jitterMarkdownMinInput)
+    jitterMarkdownMinInput.value = rulesState.settings.jitter_markdown_min ?? 5;
+  if (jitterMarkdownMaxInput)
+    jitterMarkdownMaxInput.value = rulesState.settings.jitter_markdown_max ?? 8;
+  if (jitterMarkupMinInput) jitterMarkupMinInput.value = rulesState.settings.jitter_markup_min ?? 0;
+  if (jitterMarkupMaxInput) jitterMarkupMaxInput.value = rulesState.settings.jitter_markup_max ?? 2;
+  if (jitterSeedInput) jitterSeedInput.value = rulesState.settings.jitter_seed_salt ?? '';
   renderSeasons();
   appReady.rules = true;
   renderOrchestrator();
@@ -494,6 +522,37 @@ async function saveRules() {
   if (!rulesState.settings) rulesState.settings = {};
   rulesState.settings.override_color =
     overrideColorInput?.value || rulesState.settings.override_color || '#ffd1dc';
+  // Gather jitter settings from UI
+  if (jitterEnabledInput) rulesState.settings.auto_jitter_enabled = !!jitterEnabledInput.checked;
+  if (jitterIntervalInput)
+    rulesState.settings.jitter_interval_minutes = Math.max(
+      5,
+      Number(jitterIntervalInput.value || 60)
+    );
+  if (jitterLookaheadInput)
+    rulesState.settings.jitter_lookahead_days = Math.max(
+      1,
+      Number(jitterLookaheadInput.value || 30)
+    );
+  if (jitterBlockNearInput)
+    rulesState.settings.jitter_block_near_days = Math.max(
+      0,
+      Number(jitterBlockNearInput.value || 2)
+    );
+  if (jitterDatesPerRunInput)
+    rulesState.settings.jitter_dates_per_run = Math.max(
+      1,
+      Number(jitterDatesPerRunInput.value || 2)
+    );
+  if (jitterMarkdownMinInput)
+    rulesState.settings.jitter_markdown_min = Number(jitterMarkdownMinInput.value || 5);
+  if (jitterMarkdownMaxInput)
+    rulesState.settings.jitter_markdown_max = Number(jitterMarkdownMaxInput.value || 8);
+  if (jitterMarkupMinInput)
+    rulesState.settings.jitter_markup_min = Number(jitterMarkupMinInput.value || 0);
+  if (jitterMarkupMaxInput)
+    rulesState.settings.jitter_markup_max = Number(jitterMarkupMaxInput.value || 2);
+  if (jitterSeedInput) rulesState.settings.jitter_seed_salt = jitterSeedInput.value || '';
   const body = {
     rulesFile: file,
     baseRates: rulesState.baseRates,

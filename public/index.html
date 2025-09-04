@@ -30,6 +30,39 @@
             <button id="loadProps">Load Properties</button>
           </div>
         </div>
+        <h3>Jitter (Auto Price Tweaks)</h3>
+        <div class="grid grid-4">
+          <label><input id="jitterEnabled" type="checkbox" /> Enable Auto Jitter</label>
+          <label
+            >Interval (min)<input id="jitterInterval" type="number" step="1" min="5" value="60"
+          /></label>
+          <label
+            >Lookahead (days)<input id="jitterLookahead" type="number" step="1" min="1" value="30"
+          /></label>
+          <label
+            >Block Near (days)<input id="jitterBlockNear" type="number" step="1" min="0" value="2"
+          /></label>
+        </div>
+        <div class="grid grid-4">
+          <label
+            >Dates per run<input id="jitterDatesPerRun" type="number" step="1" min="1" value="2"
+          /></label>
+          <label
+            >Markdown min %<input id="jitterMarkdownMin" type="number" step="0.5" value="5"
+          /></label>
+          <label
+            >Markdown max %<input id="jitterMarkdownMax" type="number" step="0.5" value="8"
+          /></label>
+          <label
+            >Markup min %<input id="jitterMarkupMin" type="number" step="0.5" value="0"
+          /></label>
+        </div>
+        <div class="grid grid-4">
+          <label
+            >Markup max %<input id="jitterMarkupMax" type="number" step="0.5" value="2"
+          /></label>
+          <label>Random Seed<input id="jitterSeed" type="text" placeholder="optional" /></label>
+        </div>
       </section>
 
       <section class="card page" data-page="discounts">

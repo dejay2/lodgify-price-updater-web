@@ -161,6 +161,18 @@ function normalizeRules(r, opts = {}) {
   const settings = {
     override_color:
       typeof raw.settings?.override_color === 'string' ? raw.settings.override_color : '#ffd1dc',
+    // Jitter settings (optional; UI-driven)
+    auto_jitter_enabled: Boolean(raw.settings?.auto_jitter_enabled || false),
+    jitter_interval_minutes: Math.max(5, Number(raw.settings?.jitter_interval_minutes || 60)),
+    jitter_lookahead_days: Math.max(1, Number(raw.settings?.jitter_lookahead_days || 30)),
+    jitter_block_near_days: Math.max(0, Number(raw.settings?.jitter_block_near_days || 2)),
+    jitter_dates_per_run: Math.max(1, Number(raw.settings?.jitter_dates_per_run || 2)),
+    jitter_markdown_min: Number(raw.settings?.jitter_markdown_min ?? 5),
+    jitter_markdown_max: Number(raw.settings?.jitter_markdown_max ?? 8),
+    jitter_markup_min: Number(raw.settings?.jitter_markup_min ?? 0),
+    jitter_markup_max: Number(raw.settings?.jitter_markup_max ?? 2),
+    jitter_seed_salt:
+      typeof raw.settings?.jitter_seed_salt === 'string' ? raw.settings.jitter_seed_salt : '',
   };
   return { baseRates, seasons, overrides, settings, global_los };
 }
