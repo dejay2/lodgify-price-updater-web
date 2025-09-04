@@ -6,6 +6,7 @@ import bodyParser from 'body-parser';
 
 import { fetchProperties, postRates } from './src/lodgify.js';
 import { runUpdate } from './src/logic.js';
+import { computeJitterMap } from './src/jitter.js';
 import { loadRules, saveRules } from './src/rules.js';
 import {
   fetchUpcomingBookingsPage,
@@ -23,6 +24,18 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 const AUTO_SYNC_MINUTES = Number(process.env.BOOKING_SYNC_INTERVAL_MINUTES || 0) || 0; // 0 disables
+const AUTO_JITTER_ENABLED = /^(1|true|yes)$/i.test(
+  String(process.env.AUTO_JITTER_ENABLED || 'false')
+);
+const JITTER_INTERVAL_MINUTES = Number(process.env.JITTER_INTERVAL_MINUTES || 60) || 60;
+const JITTER_LOOKAHEAD_DAYS = Number(process.env.JITTER_LOOKAHEAD_DAYS || 30) || 30;
+const JITTER_BLOCK_NEAR_DAYS = Number(process.env.JITTER_BLOCK_NEAR_DAYS || 2) || 2;
+const JITTER_DATES_PER_RUN = Number(process.env.JITTER_DATES_PER_RUN || 2) || 2;
+const JITTER_MARKDOWN_MIN = Number(process.env.JITTER_MARKDOWN_MIN || 5) || 5;
+const JITTER_MARKDOWN_MAX = Number(process.env.JITTER_MARKDOWN_MAX || 8) || 8;
+const JITTER_MARKUP_MIN = Number(process.env.JITTER_MARKUP_MIN || 0) || 0;
+const JITTER_MARKUP_MAX = Number(process.env.JITTER_MARKUP_MAX || 2) || 2;
+const JITTER_SEED_SALT = String(process.env.JITTER_SEED_SALT || '');
 
 app.use(bodyParser.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -461,5 +474,81 @@ app.listen(PORT, () => {
     setTimeout(kick, 10_000);
     setInterval(kick, intervalMs);
     console.log(`Auto-sync enabled: every ${AUTO_SYNC_MINUTES} minute(s)`);
+  }
+  // Start jitter scheduler if configured
+  if (AUTO_JITTER_ENABLED) {
+    if (!process.env.LODGIFY_API_KEY) {
+      console.warn('Auto-jitter disabled: LODGIFY_API_KEY not set');
+    } else {
+      const jitterIntervalMs = Math.max(1, JITTER_INTERVAL_MINUTES) * 60 * 1000;
+      let runningJitter = false;
+      const runJitterOnce = async () => {
+        if (runningJitter) return;
+        runningJitter = true;
+        try {
+          // Fetch properties
+          const props = await fetchProperties(process.env.LODGIFY_API_KEY);
+          // Compute jitter map for current hour
+          const now = new Date();
+          const jitterMap = await computeJitterMap({
+            props,
+            now,
+            config: {
+              lookaheadDays: JITTER_LOOKAHEAD_DAYS,
+              blockNearDays: JITTER_BLOCK_NEAR_DAYS,
+              datesPerRun: JITTER_DATES_PER_RUN,
+              markdownMin: JITTER_MARKDOWN_MIN,
+              markdownMax: JITTER_MARKDOWN_MAX,
+              markupMin: JITTER_MARKUP_MIN,
+              markupMax: JITTER_MARKUP_MAX,
+              seedSalt: JITTER_SEED_SALT,
+            },
+          });
+          // Prepare a settings object like /api/run-update uses
+          const fmt = (d) =>
+            `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+          const today = new Date();
+          const startLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+          const endExclusive = new Date(
+            startLocal.getFullYear(),
+            startLocal.getMonth() + 18,
+            startLocal.getDate()
+          );
+          const endLocal = new Date(
+            endExclusive.getFullYear(),
+            endExclusive.getMonth(),
+            endExclusive.getDate() - 1
+          );
+          const settings = {
+            windowDays: 30,
+            startDiscountPct: 30,
+            endDiscountPct: 1,
+            minPrice: 0,
+            startDate: fmt(startLocal),
+            endDate: fmt(endLocal),
+            rulesFile: 'price_rules.json',
+            dryRun: false,
+            selectedPropertyIds: [],
+          };
+          const summary = await runUpdate({
+            apiKey: process.env.LODGIFY_API_KEY,
+            settings,
+            postRates,
+            jitterMap,
+          });
+          console.log(
+            `[auto-jitter] ${new Date().toISOString()} success=${summary.success} failed=${summary.failed} skipped=${summary.skipped}`
+          );
+        } catch (e) {
+          console.error('[auto-jitter] failed:', e?.message || e);
+        } finally {
+          runningJitter = false;
+        }
+      };
+      // initial run after short delay, then on interval
+      setTimeout(runJitterOnce, 15_000);
+      setInterval(runJitterOnce, jitterIntervalMs);
+      console.log(`Auto-jitter enabled: every ${JITTER_INTERVAL_MINUTES} minute(s)`);
+    }
   }
 });

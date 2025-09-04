@@ -17,7 +17,7 @@ function getRoomName(room) {
 
 // Baseline/calendar pricing removed — rules-only mode
 
-export async function runUpdate({ apiKey, settings, postRates }) {
+export async function runUpdate({ apiKey, settings, postRates, jitterMap = null }) {
   const logs = [];
   const log = (m) => logs.push(`[${new Date().toISOString()}] ${m}`);
   const summary = { success: 0, failed: 0, skipped: 0, dry_run: 0, logs };
@@ -83,6 +83,7 @@ export async function runUpdate({ apiKey, settings, postRates }) {
         endDate: settings.endDate,
         rules: rules || { baseRates: {}, seasons: [] },
         settings,
+        jitterMap: jitterMap || undefined,
       });
       const status = rates.length ? 'ok' : 'skipped_no_rates';
 

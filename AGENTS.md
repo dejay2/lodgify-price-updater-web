@@ -15,6 +15,7 @@ correctly.
 - Start dev: `npm start` (server on `http://localhost:3000`)
 - Lint: `npm run lint`
 - Format check: `npm run format:check`
+ - Optional automation: set `BOOKING_SYNC_INTERVAL_MINUTES` to auto‑sync bookings; set `AUTO_JITTER_ENABLED=true` to enable hourly pricing jitter.
 
 ## Tabs (UI)
 - Calendar (default): price preview, month navigation, booked overlays, override editor (click/drag).
@@ -38,6 +39,7 @@ correctly.
     default entry `{ is_default: true, price_per_day=<Base>, min_stay:2, max_stay:30 }`.
   - Uses `rules.global_los` if present; else per‑property `los`.
 - `public/app.js`: UI logic, calendar render, override editing, bookings overlays, tabs.
+ - `src/jitter.js`: Jitter engine (random micro‑adjustments). Reads `bookings_store.json` to avoid booked dates.
 
 ## Rules Schema (price_rules.json)
 ```

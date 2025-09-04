@@ -16,6 +16,7 @@ Features
   - Import Upcoming or All bookings; incremental sync by updatedSince; optional auto‑sync via env.
   - Only status "Booked" are stored; removing or cancelling a booking removes it from the local store.
 - Payloads: first entry is a required default rate `{ is_default: true }` with Base Rate and 2–30 min/max stay so any uncovered dates are accepted by Lodgify; specific per‑day entries follow.
+- Auto‑jitter (optional): hourly micro price adjustments to keep listings fresh; configurable by env vars (disabled by default).
 
 Prerequisites
 
@@ -34,6 +35,11 @@ Setup
      - `PORT=3000`
    - Optional entries:
      - `BOOKING_SYNC_INTERVAL_MINUTES=15` to enable automated incremental sync (0 disables).
+     - `AUTO_JITTER_ENABLED=true` to enable hourly price jitter (default false)
+     - `JITTER_INTERVAL_MINUTES=60` cadence
+     - `JITTER_LOOKAHEAD_DAYS=30`, `JITTER_BLOCK_NEAR_DAYS=2`, `JITTER_DATES_PER_RUN=2`
+     - `JITTER_MARKDOWN_MIN=5`, `JITTER_MARKDOWN_MAX=8`, `JITTER_MARKUP_MIN=0`, `JITTER_MARKUP_MAX=2`
+     - `JITTER_SEED_SALT=optional-randomizer` for deterministic randomness per hour
 
 3. Start the server:
    npm start
@@ -93,6 +99,7 @@ Notes
 
 - Baseline is saved to `original_rates.json` (configurable) to avoid refetching each run.
 - Generated rate payloads are saved under `payload_logs/`.
+- If auto‑jitter is enabled, the app posts full rate payloads every interval with tiny adjustments on a few future dates while respecting min prices and rules.
 - The logic is ported from `lodgify_manager.py` (update_prices and baseline/calendar fetch) to JavaScript.
 
 Troubleshooting

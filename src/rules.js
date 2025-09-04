@@ -207,7 +207,15 @@ export function computeDiscountPct({
   return startDec + (endDec - startDec) * progress;
 }
 
-export function buildRatesFromRules({ propId, roomId, startDate, endDate, rules, settings }) {
+export function buildRatesFromRules({
+  propId,
+  roomId,
+  startDate,
+  endDate,
+  rules,
+  settings,
+  jitterMap,
+}) {
   const out = [];
   const baseCfg = rules.baseRates[String(propId)] || rules.baseRates[propId] || null;
   if (!baseCfg) return out;
@@ -303,6 +311,11 @@ export function buildRatesFromRules({ propId, roomId, startDate, endDate, rules,
       const isWeekend = day === 5 || day === 6;
       if (isWeekend && weekendPct) {
         p = Math.floor(p * (1 + Math.abs(weekendPct) / 100));
+      }
+      // Apply optional jitter (per-property per-day percent), after LOS/weekend adjustments
+      const j = jitterMap?.[String(propId)]?.[ds];
+      if (typeof j === 'number' && isFinite(j) && j !== 0) {
+        p = Math.floor(p * (1 + j / 100));
       }
       if (minClamp && p < minClamp) p = minClamp;
       out.push({
