@@ -89,6 +89,34 @@ function normalizeRules(r, opts = {}) {
     percent: Number(s.percent || 0),
     color: typeof s.color === 'string' ? s.color : '',
   })) : [];
+  // Global LOS (optional). If present, applies to all properties.
+  let global_los = Array.isArray(raw.global_los) ? raw.global_los.map(x => ({
+    name: x.name || '',
+    min_days: x.min_days != null ? Number(x.min_days) : (x.min ?? 1),
+    max_days: x.max_days != null ? Number(x.max_days) : (x.max ?? null),
+    percent: Number(x.percent || 0),
+    color: typeof x.color === 'string' ? x.color : '',
+  })) : [];
+  global_los.sort((a, b) => (a.min_days ?? 0) - (b.min_days ?? 0));
+  const cleanedGlobal = [];
+  for (const x of global_los) {
+    const minD = Math.max(1, Number.isFinite(x.min_days) ? x.min_days : 1);
+    const maxD = x.max_days == null ? null : Math.max(minD, Number(x.max_days));
+    const item = { name: x.name || '', min_days: minD, max_days: maxD, percent: Number(x.percent || 0), color: typeof x.color === 'string' ? x.color : '' };
+    if (cleanedGlobal.length) {
+      const prev = cleanedGlobal[cleanedGlobal.length - 1];
+      const prevMax = prev.max_days;
+      if (prevMax == null || minD <= prevMax) {
+        if (opts.validate) {
+          throw new Error(`Global LOS overlap: ${prev.min_days}-${prev.max_days ?? '∞'} vs ${minD}-${maxD ?? '∞'}`);
+        } else {
+          continue;
+        }
+      }
+    }
+    cleanedGlobal.push(item);
+  }
+  global_los = cleanedGlobal;
   // Overrides per property
   const overrides = {};
   if (raw.overrides && typeof raw.overrides === 'object') {
@@ -105,7 +133,7 @@ function normalizeRules(r, opts = {}) {
   const settings = {
     override_color: typeof raw.settings?.override_color === 'string' ? raw.settings.override_color : '#ffd1dc',
   };
-  return { baseRates, seasons, overrides, settings };
+  return { baseRates, seasons, overrides, settings, global_los };
 }
 
 export function seasonPercentForDate(date, seasons) {
@@ -161,7 +189,9 @@ export function buildRatesFromRules({ propId, roomId, startDate, endDate, rules,
     price_per_additional_guest: Number(baseCfg.price_per_additional_guest || 0),
     additional_guests_starts_from: Number(baseCfg.additional_guests_starts_from || 0),
   });
-  let losRules = Array.isArray(baseCfg.los) ? baseCfg.los.slice() : [];
+  let losRules = Array.isArray(rules.global_los) && rules.global_los.length
+    ? rules.global_los.slice()
+    : (Array.isArray(baseCfg.los) ? baseCfg.los.slice() : []);
   // Ensure non-overlapping, sorted tiers (defensive – saveRules also validates)
   losRules.sort((a, b) => (a.min_days ?? 0) - (b.min_days ?? 0));
   for (let i = 1; i < losRules.length; i++) {

@@ -1,21 +1,56 @@
 {
   "baseRates": {
     "327020": {
-      "base": 300,
+      "base": 275,
       "min": 100,
       "los": [
         {
-          "name": "Default 2-6 nights",
+          "name": "2 Nights",
           "min_days": 2,
+          "max_days": 2,
+          "percent": 0,
+          "color": ""
+        },
+        {
+          "name": "3 Nights",
+          "min_days": 3,
+          "max_days": 3,
+          "percent": 2.5,
+          "color": ""
+        },
+        {
+          "name": "4 Nights",
+          "min_days": 4,
+          "max_days": 4,
+          "percent": 5,
+          "color": ""
+        },
+        {
+          "name": "5 Nights",
+          "min_days": 5,
+          "max_days": 5,
+          "percent": 10,
+          "color": ""
+        },
+        {
+          "name": "6 Nights",
+          "min_days": 6,
           "max_days": 6,
+          "percent": 15,
+          "color": ""
+        },
+        {
+          "name": "7 nights",
+          "min_days": 7,
+          "max_days": 13,
           "percent": 20,
           "color": ""
         },
         {
-          "name": "Week",
-          "min_days": 7,
-          "max_days": 13,
-          "percent": 0,
+          "name": "14 nights",
+          "min_days": 14,
+          "max_days": 365,
+          "percent": 25,
           "color": ""
         }
       ],
@@ -24,7 +59,7 @@
       "additional_guests_starts_from": 2
     },
     "327021": {
-      "base": 300,
+      "base": 356,
       "min": 100,
       "los": [
         {
@@ -36,11 +71,11 @@
         }
       ],
       "weekend_pct": 20,
-      "price_per_additional_guest": 10,
-      "additional_guests_starts_from": 5
+      "price_per_additional_guest": 5,
+      "additional_guests_starts_from": 2
     },
     "327168": {
-      "base": 300,
+      "base": 356,
       "min": 100,
       "los": [
         {
@@ -51,12 +86,12 @@
           "color": ""
         }
       ],
-      "weekend_pct": 10,
+      "weekend_pct": 20,
       "price_per_additional_guest": 5,
       "additional_guests_starts_from": 2
     },
     "327169": {
-      "base": 300,
+      "base": 356,
       "min": 100,
       "los": [
         {
@@ -67,12 +102,12 @@
           "color": ""
         }
       ],
-      "weekend_pct": 0,
-      "price_per_additional_guest": 0,
-      "additional_guests_starts_from": 0
+      "weekend_pct": 20,
+      "price_per_additional_guest": 5,
+      "additional_guests_starts_from": 2
     },
     "327177": {
-      "base": 300,
+      "base": 275,
       "min": 100,
       "los": [
         {
@@ -83,12 +118,12 @@
           "color": ""
         }
       ],
-      "weekend_pct": 0,
-      "price_per_additional_guest": 0,
-      "additional_guests_starts_from": 0
+      "weekend_pct": 20,
+      "price_per_additional_guest": 5,
+      "additional_guests_starts_from": 2
     },
     "327178": {
-      "base": 300,
+      "base": 275,
       "min": 100,
       "los": [
         {
@@ -99,12 +134,12 @@
           "color": ""
         }
       ],
-      "weekend_pct": 0,
-      "price_per_additional_guest": 0,
-      "additional_guests_starts_from": 0
+      "weekend_pct": 20,
+      "price_per_additional_guest": 5,
+      "additional_guests_starts_from": 2
     },
     "591981": {
-      "base": 300,
+      "base": 275,
       "min": 100,
       "los": [
         {
@@ -115,12 +150,12 @@
           "color": ""
         }
       ],
-      "weekend_pct": 0,
-      "price_per_additional_guest": 0,
-      "additional_guests_starts_from": 0
+      "weekend_pct": 20,
+      "price_per_additional_guest": 5,
+      "additional_guests_starts_from": 2
     },
     "602278": {
-      "base": 300,
+      "base": 275,
       "min": 100,
       "los": [
         {
@@ -131,9 +166,9 @@
           "color": ""
         }
       ],
-      "weekend_pct": 0,
-      "price_per_additional_guest": 0,
-      "additional_guests_starts_from": 0
+      "weekend_pct": 20,
+      "price_per_additional_guest": 5,
+      "additional_guests_starts_from": 2
     }
   },
   "seasons": [
@@ -141,157 +176,320 @@
       "name": "Mid Season (Autumn Shoulder)",
       "start": "2025-09-01",
       "end": "2025-10-17",
-      "percent": 5,
+      "percent": -43,
       "color": "#dc5050"
     },
     {
       "name": "October Half Term",
       "start": "2025-10-18",
       "end": "2025-11-02",
-      "percent": 8,
+      "percent": -51.5,
       "color": ""
     },
     {
       "name": "Low Season (Nov-Early Dec)",
       "start": "2025-11-03",
       "end": "2025-12-18",
-      "percent": -20,
+      "percent": -60,
       "color": "#1a59ea"
     },
     {
       "name": "Christmas & New Year",
       "start": "2025-12-19",
       "end": "2026-01-04",
-      "percent": 20,
+      "percent": -25,
       "color": ""
     },
     {
       "name": "Low Season (Jan-Feb)",
       "start": "2026-01-05",
       "end": "2026-02-13",
-      "percent": -20,
+      "percent": -60,
       "color": ""
     },
     {
       "name": "February Half Term",
       "start": "2026-02-14",
       "end": "2026-02-22",
-      "percent": 10,
+      "percent": -51.5,
       "color": ""
     },
     {
       "name": "Mid Season (Late Winter)",
       "start": "2026-02-23",
       "end": "2026-03-27",
-      "percent": 0,
+      "percent": -60,
       "color": ""
     },
     {
       "name": "Easter Holidays",
       "start": "2026-03-28",
       "end": "2026-04-12",
-      "percent": 15,
+      "percent": -43,
       "color": ""
     },
     {
       "name": "Mid Season (Spring)",
       "start": "2026-04-13",
       "end": "2026-05-22",
-      "percent": 5,
+      "percent": -43,
       "color": ""
     },
     {
       "name": "Whitsun Half Term",
       "start": "2026-05-23",
       "end": "2026-05-31",
-      "percent": 12,
+      "percent": -28,
       "color": ""
     },
     {
       "name": "Mid Season (Early Summer)",
       "start": "2026-06-01",
       "end": "2026-07-17",
-      "percent": 5,
+      "percent": -21,
       "color": ""
     },
     {
       "name": "Kids Summer Holidays",
       "start": "2026-07-18",
       "end": "2026-09-01",
-      "percent": 25,
+      "percent": 0,
       "color": ""
     },
     {
       "name": "Mid Season (Autumn Shoulder)",
       "start": "2026-09-02",
       "end": "2026-10-16",
-      "percent": 5,
+      "percent": -21,
       "color": ""
     },
     {
       "name": "October Half Term",
       "start": "2026-10-17",
       "end": "2026-11-01",
-      "percent": 8,
+      "percent": -51.5,
       "color": ""
     },
     {
       "name": "Low Season (Nov-Early Dec)",
       "start": "2026-11-02",
       "end": "2026-12-18",
-      "percent": -20,
+      "percent": -60,
       "color": ""
     },
     {
       "name": "Christmas & New Year",
       "start": "2026-12-19",
       "end": "2027-01-03",
-      "percent": 20,
+      "percent": -25,
       "color": ""
     },
     {
       "name": "Low Season (Jan-Feb)",
       "start": "2027-01-04",
       "end": "2027-02-12",
-      "percent": -20,
+      "percent": -60,
       "color": ""
     },
     {
       "name": "February Half Term",
       "start": "2027-02-13",
       "end": "2027-02-21",
-      "percent": 10,
+      "percent": -51.5,
       "color": ""
     },
     {
       "name": "Low/Mid Season",
       "start": "2027-02-22",
       "end": "2027-02-28",
-      "percent": 0,
+      "percent": -60,
       "color": ""
     }
   ],
   "overrides": {
-    "327020": [],
+    "327020": [
+      {
+        "date": "2025-12-31",
+        "price": 500,
+        "min_stay": 2,
+        "max_stay": 6
+      },
+      {
+        "date": "2026-12-31",
+        "price": 500,
+        "min_stay": 2,
+        "max_stay": 6
+      }
+    ],
     "327021": [
       {
         "date": "2025-09-05",
         "price": 200,
         "min_stay": 2,
         "max_stay": 10
+      },
+      {
+        "date": "2025-12-31",
+        "price": 750,
+        "min_stay": null,
+        "max_stay": null
+      },
+      {
+        "date": "2026-12-31",
+        "price": 750,
+        "min_stay": 2,
+        "max_stay": 6
       }
     ],
-    "327168": [],
+    "327168": [
+      {
+        "date": "2025-12-31",
+        "price": 750,
+        "min_stay": 2,
+        "max_stay": 6
+      },
+      {
+        "date": "2026-12-31",
+        "price": 750,
+        "min_stay": 2,
+        "max_stay": 6
+      }
+    ],
+    "327169": [
+      {
+        "date": "2025-12-31",
+        "price": 750,
+        "min_stay": 2,
+        "max_stay": 6
+      },
+      {
+        "date": "2026-12-31",
+        "price": 750,
+        "min_stay": 2,
+        "max_stay": 6
+      },
+      {
+        "date": "2025-09-11",
+        "price": 100,
+        "min_stay": null,
+        "max_stay": null
+      }
+    ],
+    "327177": [
+      {
+        "date": "2025-12-31",
+        "price": 500,
+        "min_stay": 2,
+        "max_stay": 6
+      },
+      {
+        "date": "2026-12-31",
+        "price": 500,
+        "min_stay": 2,
+        "max_stay": 6
+      }
+    ],
     "327178": [
       {
         "date": "2025-11-27",
         "price": 100,
         "min_stay": null,
         "max_stay": null
+      },
+      {
+        "date": "2025-12-31",
+        "price": 500,
+        "min_stay": 2,
+        "max_stay": 6
+      },
+      {
+        "date": "2026-12-31",
+        "price": 500,
+        "min_stay": 2,
+        "max_stay": 6
+      }
+    ],
+    "591981": [
+      {
+        "date": "2025-12-31",
+        "price": 500,
+        "min_stay": 2,
+        "max_stay": 6
+      },
+      {
+        "date": "2026-12-31",
+        "price": 500,
+        "min_stay": 2,
+        "max_stay": 6
+      }
+    ],
+    "602278": [
+      {
+        "date": "2025-12-31",
+        "price": 500,
+        "min_stay": 2,
+        "max_stay": 6
+      },
+      {
+        "date": "2026-12-31",
+        "price": 500,
+        "min_stay": 2,
+        "max_stay": 6
       }
     ]
   },
   "settings": {
     "override_color": "#e1ff00"
-  }
+  },
+  "global_los": [
+    {
+      "name": "2 Nights",
+      "min_days": 2,
+      "max_days": 2,
+      "percent": 0,
+      "color": ""
+    },
+    {
+      "name": "3 Nights",
+      "min_days": 3,
+      "max_days": 3,
+      "percent": 2.5,
+      "color": ""
+    },
+    {
+      "name": "4 Nights",
+      "min_days": 4,
+      "max_days": 4,
+      "percent": 5,
+      "color": ""
+    },
+    {
+      "name": "5 Nights",
+      "min_days": 5,
+      "max_days": 5,
+      "percent": 10,
+      "color": ""
+    },
+    {
+      "name": "6 Nights",
+      "min_days": 6,
+      "max_days": 6,
+      "percent": 15,
+      "color": ""
+    },
+    {
+      "name": "7 nights",
+      "min_days": 7,
+      "max_days": 13,
+      "percent": 20,
+      "color": ""
+    },
+    {
+      "name": "14 nights",
+      "min_days": 14,
+      "max_days": 365,
+      "percent": 25,
+      "color": ""
+    }
+  ]
 }
