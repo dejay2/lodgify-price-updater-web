@@ -41,6 +41,10 @@ function normalizeRules(r, opts = {}) {
     rec.weekend_pct = Number(
       rec.weekend_pct ?? rec.weekendPct ?? rec.weekend ?? rec.weekend_rate ?? 0
     );
+    // Max discount percent (applies only to Discount tab curve; does not affect LOS or seasons)
+    rec.max_discount_pct = Number(
+      rec.max_discount_pct ?? rec.maxDiscountPct ?? rec.discount_cap_pct ?? 0
+    );
     // Additional guests pricing
     rec.price_per_additional_guest = Number(
       rec.price_per_additional_guest ?? rec.additional_guest_price ?? rec.ppag ?? 0
@@ -210,6 +214,7 @@ export function buildRatesFromRules({ propId, roomId, startDate, endDate, rules,
   const base = Number(baseCfg.base || baseCfg.baseRate || 0);
   const minRate = Number(baseCfg.min || baseCfg.minRate || 0);
   const weekendPct = Number(baseCfg.weekend_pct || 0);
+  const maxDiscountPct = Number(baseCfg.max_discount_pct || 0);
   if (!base) return out;
   // Default catch-all rate must be first. Lodgify requires an is_default=true
   // entry without dates. This is used for any dates not covered by specific
@@ -265,12 +270,17 @@ export function buildRatesFromRules({ propId, roomId, startDate, endDate, rules,
       });
       continue;
     }
-    const discountPct = computeDiscountPct({
+    let discountPct = computeDiscountPct({
       date: ds,
       windowDays: settings.windowDays,
       startDiscountPct: settings.startDiscountPct,
       endDiscountPct: settings.endDiscountPct,
     });
+    // Cap only the Discount tab’s curve using per-property max (if > 0)
+    if (maxDiscountPct > 0) {
+      const cap = Math.max(0, Math.min(1, maxDiscountPct / 100));
+      discountPct = Math.min(discountPct, cap);
+    }
     const baseAdj = computeBaseForDate({ date: ds, base, seasons: rules.seasons, discountPct });
     if (baseAdj == null) continue;
     const minClamp = Math.max(minRate || 0, settings.minPrice || 0);

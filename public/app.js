@@ -22,6 +22,7 @@ const propSelectRules = document.getElementById('propSelectRules');
 const baseRateInput = document.getElementById('baseRate');
 const minRateInput = document.getElementById('minRate');
 const weekendRateInput = document.getElementById('weekendRate');
+const maxDiscountPctInput = document.getElementById('maxDiscountPct');
 const ppagInput = document.getElementById('ppag');
 const addlFromInput = document.getElementById('addlFrom');
 const loadRulesBtn = document.getElementById('loadRules');
@@ -128,6 +129,10 @@ async function loadPropertiesAndRender() {
     syncRulesPropSelect();
     syncCalProps();
     appReady.props = true;
+    // Ensure rules are loaded/refreshed automatically when properties are loaded
+    try {
+      await loadRules();
+    } catch {}
     renderOrchestrator();
   } catch (e) {
     propsDiv.innerHTML = `<div class="error">Failed to load: ${e.message}</div>`;
@@ -353,14 +358,16 @@ propSelectRules.addEventListener('change', () => {
     saveRatesBtn.textContent = 'Save';
   }
 });
-loadRulesBtn.addEventListener('click', async () => {
-  try {
-    await loadRules();
-    showToast('Rules loaded', 'success');
-  } catch (e) {
-    showToast(`Failed to load rules: ${e.message}`, 'error', 4000);
-  }
-});
+if (loadRulesBtn) {
+  loadRulesBtn.addEventListener('click', async () => {
+    try {
+      await loadRules();
+      showToast('Rules loaded', 'success');
+    } catch (e) {
+      showToast(`Failed to load rules: ${e.message}`, 'error', 4000);
+    }
+  });
+}
 saveRatesBtn.addEventListener('click', async (e) => {
   const btn = e.currentTarget;
   const prev = btn.textContent;
@@ -374,6 +381,7 @@ saveRatesBtn.addEventListener('click', async (e) => {
     base: Number(baseRateInput.value || 0),
     min: Number(minRateInput.value || 0),
     weekend_pct: Number(weekendRateInput?.value || 0),
+    max_discount_pct: Number(maxDiscountPctInput?.value || 0),
     price_per_additional_guest: Number(
       typeof ppagInput !== 'undefined' && ppagInput ? ppagInput.value || 0 : 0
     ),
@@ -473,6 +481,8 @@ function updateBaseMinForSelectedProp() {
   minRateInput.value = rec.min ?? rec.minRate ?? '';
   if (weekendRateInput)
     weekendRateInput.value = rec.weekend_pct ?? rec.weekendPct ?? rec.weekend ?? 0;
+  if (maxDiscountPctInput)
+    maxDiscountPctInput.value = rec.max_discount_pct ?? rec.maxDiscountPct ?? '';
   if (ppagInput)
     ppagInput.value = rec.price_per_additional_guest ?? rec.additional_guest_price ?? 0;
   if (addlFromInput) addlFromInput.value = rec.additional_guests_starts_from ?? rec.addl_from ?? 0;
@@ -510,6 +520,9 @@ async function saveRules() {
 rulesFileInput.addEventListener('change', () => {
   loadRules().catch(() => {});
 });
+
+// Auto-load rules at startup so Properties/Seasons are ready without manual clicks
+loadRules().catch(() => {});
 
 // ---------- LOS rules (per property) ----------
 const losGlobalDiv = document.getElementById('losGlobal');

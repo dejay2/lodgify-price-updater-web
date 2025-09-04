@@ -20,7 +20,7 @@ correctly.
 - Calendar (default): price preview, month navigation, booked overlays, override editor (click/drag).
 - Settings: API Key (`#apiKey`), Rules File (`#rulesFile`), Override Color (`#overrideColor`).
 - Discounts: Window Days, Start/End % and Minimum Price.
-- Properties: Per‑property Base/Min, weekend %, additional guest pricing.
+- Properties: Per‑property Base/Min, weekend %, max discount % (cap for Discount tab only), additional guest pricing.
 - LOS: Global LOS table (optional). If populated, it overrides per‑property LOS.
 - Seasons: Seasonal ranges with percent and optional color.
 - Run: Property multi‑select, Run Update, Import Upcoming/All, Sync Updates, Last Sync.
@@ -47,6 +47,7 @@ correctly.
       "base": 275,
       "min": 100,
       "weekend_pct": 20,
+      "max_discount_pct": 25,
       "price_per_additional_guest": 5,
       "additional_guests_starts_from": 2,
       "los": [ { "name":"Default 2-6 nights", "min_days":2, "max_days":6, "percent":0, "color":"#888" } ]
@@ -103,4 +104,3 @@ Notes:
   - ...
 - Docs:
   - ...
-

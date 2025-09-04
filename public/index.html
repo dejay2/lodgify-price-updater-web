@@ -60,13 +60,20 @@
           <label>Base Rate (£)<input id="baseRate" type="number" step="1" /></label>
           <label>Min Rate (£)<input id="minRate" type="number" step="1" /></label>
           <label>Weekend Rate %<input id="weekendRate" type="number" step="0.5" value="0" /></label>
+          <label
+            >Max Discount %<input
+              id="maxDiscountPct"
+              type="number"
+              step="0.5"
+              value=""
+              placeholder="(optional)"
+          /></label>
           <label>Additional Guest £<input id="ppag" type="number" step="1" value="0" /></label>
           <label
             >Additional Starts From<input id="addlFrom" type="number" step="1" value="0"
           /></label>
         </div>
         <div class="actions">
-          <button id="loadRules">Load Rules</button>
           <button id="saveRates">Save</button>
         </div>
       </section>
@@ -82,9 +89,7 @@
 
       <section class="card page" data-page="seasons">
         <h2>Seasonal Rules</h2>
-        <div class="actions">
-          <button id="loadRules">Load Rules</button>
-        </div>
+        <div class="actions"></div>
         <h3>Seasons</h3>
         <div id="seasons"></div>
         <div class="actions">

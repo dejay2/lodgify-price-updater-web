@@ -8,7 +8,7 @@ Features
   - Calendar (default), Settings, Discounts, Properties, LOS, Seasons, Run
 - Settings: single source of truth for API key, rules file, and override color.
 - Discounts: configure discount window, start/end % and minimum price (applies globally).
-- Properties: set per‑property base, min, weekend %, and additional guest pricing.
+- Properties: set per‑property base, min, weekend %, max discount % (cap for Discount tab only), and additional guest pricing.
 - Global LOS: manage Length‑of‑Stay tiers once (optional); if present it applies to all properties. Per‑property LOS is used only when Global LOS is empty.
 - Seasons: add date ranges with additive percent adjustments and optional colors.
 - Calendar preview: shows prices, season indicator bar, weekend hinting, booked bands, and translucent override highlight. Drag‑select date ranges to set overrides in bulk.
@@ -67,7 +67,7 @@ Tabs overview
 - Calendar: default landing page; month navigation and price preview.
 - Settings: API key, rules file path, and override color.
 - Discounts: Window days, start/end discount %, and global minimum price.
-- Properties: Base/Min/Weekend % and extra guest pricing per property.
+- Properties: Base/Min/Weekend %/Max Discount % and extra guest pricing per property.
 - LOS: Global LOS tiers; falls back to per‑property tiers if left empty.
 - Seasons: Seasonal date ranges and optional colors.
 - Run: Property multi‑select, Run Update, and booking import/sync controls.
