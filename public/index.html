@@ -12,6 +12,7 @@
       <nav class="tabs">
         <button data-page="calendar" class="tab active">Calendar</button>
         <button data-page="settings" class="tab">Settings</button>
+        <button data-page="discounts" class="tab">Discounts</button>
         <button data-page="properties" class="tab">Properties</button>
         <button data-page="los" class="tab">LOS</button>
         <button data-page="seasons" class="tab">Seasons</button>
@@ -23,11 +24,17 @@
           <label>API Key<input id="apiKey" type="password" placeholder="Leave blank to use .env" /></label>
           <label>Rules File<input id="rulesFile" type="text" value="price_rules.json" /></label>
           <label>Override Color<input id="overrideColor" type="color" value="#ffd1dc" /></label>
+          <div class="actions" style="align-self:end"><button id="loadProps">Load Properties</button></div>
+        </div>
+      </section>
+
+      <section class="card page" data-page="discounts">
+        <h2>Discounts</h2>
+        <div class="grid grid-4">
           <label>Window Days<input id="windowDays" type="number" value="30" min="0" max="365" /></label>
           <label>Start Discount %<input id="startDiscountPct" type="number" value="30" step="0.5" /></label>
           <label>End Discount %<input id="endDiscountPct" type="number" value="1" step="0.5" /></label>
           <label>Minimum Price<input id="minPrice" type="number" value="0" step="1" /></label>
-          <div class="actions" style="align-self:end"><button id="loadProps">Load Properties</button></div>
         </div>
       </section>
 
