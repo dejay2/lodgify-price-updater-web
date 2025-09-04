@@ -31,14 +31,14 @@ const addSeasonBtn = document.getElementById('addSeason');
 const saveSeasonsBtn = document.getElementById('saveSeasons');
 const toastContainer = document.getElementById('toast-container');
 
-// Default date range: today -> 18 months ahead (server enforces; UI displays)
+// Default date range: today -> 18 months ahead (server enforces; UI displays if inputs exist)
 function fmtDate(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 const now = new Date();
 const startLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 const endExclusive = new Date(startLocal.getFullYear(), startLocal.getMonth()+18, startLocal.getDate());
 const endLocal = new Date(endExclusive.getFullYear(), endExclusive.getMonth(), endExclusive.getDate()-1);
-startDateInput.value = fmtDate(startLocal);
-endDateInput.value = fmtDate(endLocal);
+if (startDateInput) startDateInput.value = fmtDate(startLocal);
+if (endDateInput) endDateInput.value = fmtDate(endLocal);
 
 function log(msg) {
   logPre.textContent += `\n${msg}`;
@@ -679,7 +679,7 @@ function computeOneNightPrice(ds, pid) {
   const isWeekend = day === 5 || day === 6;
   const weekendPct = Number(rec.weekend_pct || rec.weekendPct || rec.weekend || 0);
   if (isWeekend && weekendPct) price = Math.floor(price * (1 + Math.abs(weekendPct) / 100));
-  const globalMin = Number(minPriceInput.value || 0);
+  const globalMin = Number((minPriceInput?.value) || 0);
   price = Math.max(price, minRate || 0, globalMin || 0);
   return price;
 }

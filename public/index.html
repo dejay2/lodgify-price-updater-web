@@ -11,25 +11,23 @@
       <h1>Lodgify Price Updater</h1>
       <nav class="tabs">
         <button data-page="calendar" class="tab active">Calendar</button>
+        <button data-page="settings" class="tab">Settings</button>
         <button data-page="properties" class="tab">Properties</button>
+        <button data-page="los" class="tab">LOS</button>
         <button data-page="seasons" class="tab">Seasons</button>
         <button data-page="run" class="tab">Run</button>
       </nav>
-      <section class="card page" data-page="run">
+      <section class="card page" data-page="settings">
         <h2>Settings</h2>
-        <div class="grid">
+        <div class="grid grid-4">
           <label>API Key<input id="apiKey" type="password" placeholder="Leave blank to use .env" /></label>
-          <label>Start Date<input id="startDate" type="date" disabled title="Auto: today" /></label>
-          <label>End Date<input id="endDate" type="date" disabled title="Auto: 18 months from today" /></label>
+          <label>Rules File<input id="rulesFile" type="text" value="price_rules.json" /></label>
+          <label>Override Color<input id="overrideColor" type="color" value="#ffd1dc" /></label>
           <label>Window Days<input id="windowDays" type="number" value="30" min="0" max="365" /></label>
           <label>Start Discount %<input id="startDiscountPct" type="number" value="30" step="0.5" /></label>
           <label>End Discount %<input id="endDiscountPct" type="number" value="1" step="0.5" /></label>
           <label>Minimum Price<input id="minPrice" type="number" value="0" step="1" /></label>
-          <label>Rules File<input id="rulesFile" type="text" value="price_rules.json" /></label>
-          <label class="checkbox"><input id="dryRun" type="checkbox" checked /> Dry Run</label>
-        </div>
-        <div class="actions">
-          <button id="loadProps">Load Properties</button>
+          <div class="actions" style="align-self:end"><button id="loadProps">Load Properties</button></div>
         </div>
       </section>
 
@@ -41,7 +39,6 @@
       <section class="card page" data-page="properties">
         <h2>Properties</h2>
         <div class="grid grid-4">
-          <label>Rules File<input id="rulesFile2" type="text" value="price_rules.json" /></label>
           <label>Property<select id="propSelectRules"></select></label>
           <label>Base Rate (£)<input id="baseRate" type="number" step="1" /></label>
           <label>Min Rate (£)<input id="minRate" type="number" step="1" /></label>
@@ -53,19 +50,19 @@
           <button id="loadRules">Load Rules</button>
           <button id="saveRates">Save</button>
         </div>
-        <h3>Length-of-Stay Rates</h3>
-        <div id="los"></div>
+      </section>
+
+      <section class="card page" data-page="los">
+        <h2>Length-of-Stay Rates (Global)</h2>
+        <div id="losGlobal"></div>
         <div class="actions">
-          <button id="addLos">Add LOS Rule</button>
-          <button id="saveLos">Save LOS</button>
+          <button id="addLosGlobal">Add LOS Rule</button>
+          <button id="saveLosGlobal">Save LOS</button>
         </div>
       </section>
 
       <section class="card page" data-page="seasons">
         <h2>Seasonal Rules</h2>
-        <div class="grid grid-4">
-          <label>Rules File<input id="rulesFile3" type="text" value="price_rules.json" /></label>
-        </div>
         <div class="actions">
           <button id="loadRules">Load Rules</button>
         </div>
@@ -86,7 +83,6 @@
             <button id="prevMonth">◀ Prev</button>
             <button id="nextMonth">Next ▶</button>
           </div>
-          <label>Override Color<input id="overrideColor" type="color" value="#ffd1dc" /></label>
         </div>
         <div id="seasonLegend" class="legend"></div>
         <div id="calendar" class="calendar"></div>
