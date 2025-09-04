@@ -239,10 +239,28 @@ async function writeSyncState(state) {
   const p = path.join(__dirname, 'bookings_sync.json');
   await fs.writeFile(p, JSON.stringify(state, null, 2), 'utf-8');
 }
-function fmtNowLocal() {
+// Format a UTC timestamp as 'YYYY-MM-DD HH:mm:ss' (UTC)
+function fmtNowUtc() {
   const d = new Date();
   const pad = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
+}
+function fmtUtcYmdHm(d) {
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
+}
+function parseUtcYmdHm(s) {
+  // Accept 'YYYY-MM-DD HH:mm' and interpret as UTC
+  if (typeof s !== 'string' || s.length < 16) return null;
+  const [datePart, timePart] = s.split(' ');
+  if (!datePart || !timePart) return null;
+  const [y, m, d] = datePart.split('-').map((v) => Number(v));
+  const tp = timePart.split(':').map((v) => Number(v));
+  const hh = tp[0] || 0;
+  const mm = tp[1] || 0;
+  const ss = tp[2] || 0;
+  if (!y || !m || !d) return null;
+  return new Date(Date.UTC(y, m - 1, d, hh, mm, ss));
 }
 
 // Read sync state
@@ -259,9 +277,23 @@ app.get('/api/bookings/sync-state', async (_req, res) => {
 async function runUpdatesSince({ apiKey, sinceOverride, size = 100 }) {
   const effectiveSize = Math.max(1, Math.min(200, Number(size || 50)));
   const state = await readSyncState();
-  const today = new Date();
-  const sinceDefault = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')} 00:00`;
-  const since = sinceOverride || state.lastSyncAt || sinceDefault;
+  // Default to 00:00:00 UTC today if no previous sync
+  const now = new Date();
+  const midnightUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
+  const sinceDefault = fmtUtcYmdHm(midnightUtc);
+  const sinceBase = sinceOverride || state.lastSyncAt || sinceDefault;
+  // Apply small overlap and ensure UTC formatting to avoid timezone gaps
+  const OVERLAP_MINUTES = 5;
+  let since = sinceBase;
+  if (!sinceOverride) {
+    try {
+      const dt = parseUtcYmdHm(sinceBase) || midnightUtc;
+      const dtAdj = new Date(dt.getTime() - OVERLAP_MINUTES * 60 * 1000);
+      since = fmtUtcYmdHm(dtAdj);
+    } catch {
+      since = sinceBase;
+    }
+  }
   const first = await fetchUpcomingBookingsUpdatedSincePage(apiKey, {
     page: 1,
     size: effectiveSize,
@@ -279,7 +311,7 @@ async function runUpdatesSince({ apiKey, sinceOverride, size = 100 }) {
     if (Array.isArray(data?.items) && data.items.length) items.push(...data.items);
   }
   const { merged, removed, totalInStore } = await mergeIntoBookingsStore(items);
-  const nextSince = fmtNowLocal();
+  const nextSince = fmtNowUtc();
   await writeSyncState({ lastSyncAt: nextSince });
   return {
     ok: true,

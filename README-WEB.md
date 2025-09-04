@@ -13,10 +13,10 @@ Features
 - Seasons: add date ranges with additive percent adjustments and optional colors.
 - Calendar preview: shows prices, season indicator bar, weekend hinting, booked bands, and translucent override highlight. Drag‑select date ranges to set overrides in bulk.
 - Bookings overlay and history:
-  - Import Upcoming or All bookings; incremental sync by updatedSince; optional auto‑sync via env.
-  - Only status "Booked" are stored; removing or cancelling a booking removes it from the local store.
+  - Import Upcoming or All bookings; incremental sync by updatedSince (UTC, with seconds) and a small safety overlap; optional auto‑sync via env.
+  - Only status "Booked" are stored; removing or cancelling a booking removes it from the local store on the next sync.
 - Payloads: first entry is a required default rate `{ is_default: true }` with Base Rate and 2–30 min/max stay so any uncovered dates are accepted by Lodgify; specific per‑day entries follow.
-- Auto‑jitter (optional): hourly micro price adjustments to keep listings fresh; configurable by env vars (disabled by default).
+- Auto‑jitter (optional): hourly micro price adjustments to keep listings fresh; configured in the Settings tab and stored in the rules file.
 
 Prerequisites
 
@@ -35,11 +35,7 @@ Setup
      - `PORT=3000`
    - Optional entries:
      - `BOOKING_SYNC_INTERVAL_MINUTES=15` to enable automated incremental sync (0 disables).
-     - `AUTO_JITTER_ENABLED=true` to enable hourly price jitter (default false)
-     - `JITTER_INTERVAL_MINUTES=60` cadence
-     - `JITTER_LOOKAHEAD_DAYS=30`, `JITTER_BLOCK_NEAR_DAYS=2`, `JITTER_DATES_PER_RUN=2`
-     - `JITTER_MARKDOWN_MIN=5`, `JITTER_MARKDOWN_MAX=8`, `JITTER_MARKUP_MIN=0`, `JITTER_MARKUP_MAX=2`
-     - `JITTER_SEED_SALT=optional-randomizer` for deterministic randomness per hour
+     - Note: Auto‑jitter is configured in the web app (Settings → Jitter). No env vars required.
 
 3. Start the server:
    npm start
@@ -59,19 +55,19 @@ Bookings import and calendar overlays
 
 - Click “Import Upcoming Bookings” to fetch all upcoming bookings and save a snapshot to `upcoming_bookings.json`. All returned rows with status "Booked" are merged into `bookings_store.json` (dedupe by `id`).
 - Click “Import All Bookings” to fetch historic + current + future (stayFilter=All) and merge Booked into the store. A snapshot of the fetch is saved to `all_bookings.json` for auditing.
-- Click “Sync Updates (since last run)” to fetch only records changed since the last sync using `updatedSince=YYYY-MM-DD HH:mm`. The last sync time is tracked in `bookings_sync.json` and displayed under Run.
+- Click “Sync Updates (since last run)” to fetch only records changed since the last sync using `updatedSince=YYYY-MM-DD HH:mm:ss` (UTC). The server uses `stayFilter=All` to include cancellations and subtracts a 5‑minute overlap window to avoid misses. The last sync time is tracked (UTC) in `bookings_sync.json` and displayed under Run.
 - The calendar reads from `bookings_store.json` and renders only status "Booked" dates. If a previously booked reservation is later cancelled, it is removed from the store on the next import/sync and disappears from the calendar.
 
 Files created (ignored by git)
 
 - `upcoming_bookings.json`, `all_bookings.json`: raw snapshots of fetches.
 - `bookings_store.json`: persistent, deduped store of “Booked” records only.
-- `bookings_sync.json`: tracks the last successful updatedSince timestamp.
+- `bookings_sync.json`: tracks the last successful updatedSince timestamp in UTC (with seconds).
 
 Tabs overview
 
 - Calendar: default landing page; month navigation and price preview.
-- Settings: API key, rules file path, and override color.
+- Settings: API key, rules file path, override color, and Jitter controls.
 - Discounts: Window days, start/end discount %, and global minimum price.
 - Properties: Base/Min/Weekend %/Max Discount % and extra guest pricing per property.
 - LOS: Global LOS tiers; falls back to per‑property tiers if left empty.
@@ -83,8 +79,8 @@ Endpoints (server)
 - `GET /api/bookings/upcoming` — fetch upcoming bookings (paginated) and merge Booked into store.
 - `GET /api/bookings/all` — fetch all bookings (paginated) and merge Booked into store.
 - `GET /api/bookings/store` — return the persistent store `{ updatedAt, count, items }`.
-- `GET /api/bookings/sync-state` — return `{ lastSyncAt }`.
-- `GET /api/bookings/sync-updates` — incremental sync with optional `since=YYYY-MM-DD HH:mm` and `size=N`.
+- `GET /api/bookings/sync-state` — return `{ lastSyncAt }` (UTC, with seconds).
+- `GET /api/bookings/sync-updates` — incremental sync with optional `since=YYYY-MM-DD HH:mm[:ss]` (UTC) and `size=N`. Uses `stayFilter=All` and applies a 5‑minute overlap.
 - `POST /api/bookings/merge` — merge posted payload (array or `{items:[...]}`), storing Booked only and dropping non‑Booked entries that already exist.
 
 Privacy
@@ -99,7 +95,7 @@ Notes
 
 - Baseline is saved to `original_rates.json` (configurable) to avoid refetching each run.
 - Generated rate payloads are saved under `payload_logs/`.
-- If auto‑jitter is enabled, the app posts full rate payloads every interval with tiny adjustments on a few future dates while respecting min prices and rules.
+- If auto‑jitter is enabled, the server posts full rate payloads every interval with tiny adjustments on a few future dates while respecting min prices and rules. The scheduler reads its configuration from the current rules file.
 - The logic is ported from `lodgify_manager.py` (update_prices and baseline/calendar fetch) to JavaScript.
 
 Troubleshooting

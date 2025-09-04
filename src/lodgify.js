@@ -78,7 +78,7 @@ export async function fetchAllBookingsPage(apiKey, { page = 1, size = 50 }) {
   return r.data; // { count, items }
 }
 
-// Fetch a page of Upcoming bookings updated since a timestamp (YYYY-MM-DD HH:mm)
+// Fetch a page of bookings updated since a timestamp (YYYY-MM-DD HH:mm)
 export async function fetchUpcomingBookingsUpdatedSincePage(
   apiKey,
   { page = 1, size = 50, updatedSince }
@@ -88,7 +88,8 @@ export async function fetchUpcomingBookingsUpdatedSincePage(
     page,
     size,
     includeCount: true,
-    stayFilter: 'Upcoming',
+    // Use 'All' so cancellations and status changes are included
+    stayFilter: 'All',
     updatedSince, // axios handles URL encoding (space -> %20)
     includeTransactions: false,
     includeExternal: true,
