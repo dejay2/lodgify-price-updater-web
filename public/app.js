@@ -17,7 +17,7 @@ const logPre = document.getElementById('log');
 const rulesFileInput = document.getElementById('rulesFile');
 
 // Rules UI elements
-const rulesFile2 = document.getElementById('rulesFile2');
+// single source of truth for rules file in Settings tab
 const propSelectRules = document.getElementById('propSelectRules');
 const baseRateInput = document.getElementById('baseRate');
 const minRateInput = document.getElementById('minRate');
@@ -78,7 +78,7 @@ function renderOrchestrator() {
   }
   // Hydrate property fields and LOS
   try { updateBaseMinForSelectedProp(); } catch {}
-  try { renderLos(); } catch {}
+  try { renderGlobalLos(); } catch {}
   // Calendar and legend
   try { renderCalendar(); } catch {}
   try { renderSeasonLegend(); } catch {}
@@ -186,7 +186,7 @@ function syncRulesPropSelect() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  rulesFile2.value = rulesFileInput.value;
+  // default show Calendar
   const tabs = document.querySelectorAll('.tab');
   const pages = document.querySelectorAll('.page');
   function show(page) {
@@ -205,18 +205,8 @@ document.addEventListener('DOMContentLoaded', () => {
 runBtn.addEventListener('click', async () => {
   const selected = Array.from(propsDiv.querySelectorAll('.prop-list input[type=checkbox]'))
     .filter(c => c.checked).map(c => c.value);
-  // Basic client-side validation
-  if (!startDateInput.value || !endDateInput.value) { log('Error: Start/End date required'); return; }
-  const sDate = new Date(startDateInput.value + 'T00:00:00');
-  const eDate = new Date(endDateInput.value + 'T00:00:00');
-  if (isNaN(sDate) || isNaN(eDate)) { log('Error: Invalid date(s)'); return; }
-  if (eDate < sDate) { log('Error: End date must be on/after start date'); return; }
-  const monthsDiff = (eDate.getFullYear() - sDate.getFullYear()) * 12 + (eDate.getMonth() - sDate.getMonth());
-  const tooLong = monthsDiff > 18 || (monthsDiff === 18 && eDate.getDate() >= sDate.getDate());
-  if (tooLong) { log('Error: Date range exceeds 18 months'); return; }
   const body = {
-    startDate: startDateInput.value,
-    endDate: endDateInput.value,
+    // start/end computed server-side; omit here
     windowDays: Number(windowDaysInput.value),
     startDiscountPct: Number(startDiscountPctInput.value),
     endDiscountPct: Number(endDiscountPctInput.value),
@@ -351,7 +341,7 @@ saveSeasonsBtn.addEventListener('click', async (e) => {
 });
 
 async function loadRules() {
-  const file = rulesFile2.value || 'price_rules.json';
+  const file = rulesFileInput.value || 'price_rules.json';
   const qs = new URLSearchParams({ rulesFile: file }).toString();
   const r = await fetch(`/api/rules?${qs}`);
   const data = await r.json();
@@ -405,11 +395,11 @@ function updateBaseMinForSelectedProp() {
   if (weekendRateInput) weekendRateInput.value = rec.weekend_pct ?? rec.weekendPct ?? rec.weekend ?? 0;
   if (ppagInput) ppagInput.value = rec.price_per_additional_guest ?? rec.additional_guest_price ?? 0;
   if (addlFromInput) addlFromInput.value = rec.additional_guests_starts_from ?? rec.addl_from ?? 0;
-  renderLos();
+  renderGlobalLos();
 }
 
 async function saveRules() {
-  const file = rulesFile2.value || 'price_rules.json';
+  const file = rulesFileInput.value || 'price_rules.json';
   if (!rulesState.settings) rulesState.settings = {};
   rulesState.settings.override_color = overrideColorInput?.value || rulesState.settings.override_color || '#ffd1dc';
   const body = { rulesFile: file, baseRates: rulesState.baseRates, seasons: rulesState.seasons, overrides: rulesState.overrides || {}, settings: rulesState.settings };
@@ -421,27 +411,21 @@ async function saveRules() {
   }
 }
 
-// keep rules file inputs in sync
-rulesFileInput.addEventListener('input', () => { rulesFile2.value = rulesFileInput.value; });
-rulesFile2.addEventListener('input', () => { rulesFileInput.value = rulesFile2.value; });
 // Auto-reload rules when rules file changes
 rulesFileInput.addEventListener('change', () => { loadRules().catch(() => {}); });
-rulesFile2.addEventListener('change', () => { loadRules().catch(() => {}); });
 
 // ---------- LOS rules (per property) ----------
-const losDiv = document.getElementById('los');
-const addLosBtn = document.getElementById('addLos');
-const saveLosBtn = document.getElementById('saveLos');
+const losGlobalDiv = document.getElementById('losGlobal');
+const addLosGlobalBtn = document.getElementById('addLosGlobal');
+const saveLosGlobalBtn = document.getElementById('saveLosGlobal');
 
-function getLosFor(pid) {
-  const rec = rulesState.baseRates[pid] || (rulesState.baseRates[pid] = { base: 0, min: 0, los: [] });
-  if (!Array.isArray(rec.los)) rec.los = [];
-  return rec.los;
+function getGlobalLos() {
+  if (!Array.isArray(rulesState.global_los)) rulesState.global_los = [];
+  return rulesState.global_los;
 }
 
-function renderLos() {
-  const pid = propSelectRules.value;
-  const los = getLosFor(pid).slice().sort((a, b) => (a.min_days ?? 0) - (b.min_days ?? 0));
+function renderGlobalLos() {
+  const los = getGlobalLos().slice().sort((a, b) => (a.min_days ?? 0) - (b.min_days ?? 0));
   const tbl = document.createElement('table');
   tbl.className = 'seasons-table';
   tbl.innerHTML = `<thead><tr><th>Name</th><th>Min Days</th><th>Max Days</th><th>Discount %</th><th>Color</th><th></th></tr></thead>`;
@@ -459,23 +443,23 @@ function renderLos() {
     tbody.appendChild(tr);
   });
   tbl.appendChild(tbody);
-  losDiv.innerHTML = '';
-  losDiv.appendChild(tbl);
-  losDiv.querySelectorAll('input').forEach(inp => {
+  losGlobalDiv.innerHTML = '';
+  losGlobalDiv.appendChild(tbl);
+  losGlobalDiv.querySelectorAll('input').forEach(inp => {
     inp.addEventListener('change', () => {
       const i = Number(inp.dataset.i); const k = inp.dataset.k;
-      const list = getLosFor(propSelectRules.value);
+      const list = getGlobalLos();
       if (!list[i]) list[i] = {};
       list[i][k] = inp.type === 'number' ? Number(inp.value) : inp.value;
     });
   });
-  losDiv.querySelectorAll('button[data-del]').forEach(btn => {
-    btn.onclick = () => { const i = Number(btn.dataset.del); const list = getLosFor(propSelectRules.value); list.splice(i, 1); renderLos(); };
+  losGlobalDiv.querySelectorAll('button[data-del]').forEach(btn => {
+    btn.onclick = () => { const i = Number(btn.dataset.del); const list = getGlobalLos(); list.splice(i, 1); renderGlobalLos(); };
   });
 }
 
-addLosBtn.addEventListener('click', () => {
-  const list = getLosFor(propSelectRules.value);
+addLosGlobalBtn.addEventListener('click', () => {
+  const list = getGlobalLos();
   // Sort existing by min_days
   list.sort((a, b) => (a.min_days ?? 0) - (b.min_days ?? 0));
   if (list.length === 0) {
@@ -491,10 +475,10 @@ addLosBtn.addEventListener('click', () => {
     const newMax = newMin + 6; // 1-week span by default
     list.push({ name: '', min_days: newMin, max_days: newMax, percent: 0 });
   }
-  renderLos();
+  renderGlobalLos();
 });
 
-saveLosBtn.addEventListener('click', async (e) => {
+saveLosGlobalBtn.addEventListener('click', async (e) => {
   const btn = e.currentTarget; const prev = btn.textContent; btn.textContent = 'Saving…'; btn.disabled = true;
   try { await saveRules(); showToast('LOS saved', 'success'); }
   catch (err) { showToast(err?.message || 'Failed to save LOS', 'error', 5000); }
@@ -683,7 +667,9 @@ function computeOneNightPrice(ds, pid) {
   const seasonPct = getSeasonPctForDate(ds);
   const baseAdj = Math.floor(base * (1 + seasonPct / 100));
   // find LOS that covers 1 night
-  const los = Array.isArray(rec.los) ? rec.los : [];
+  const los = Array.isArray(rulesState.global_los) && rulesState.global_los.length
+    ? rulesState.global_los
+    : (Array.isArray(rec.los) ? rec.los : []);
   const cover = los.find(r => (r.min_days ?? 1) <= 1 && (r.max_days == null || r.max_days >= 1));
   let price = baseAdj;
   if (cover) price = Math.floor(baseAdj * (1 - Math.abs(cover.percent || 0) / 100));
@@ -765,7 +751,9 @@ function renderCalendar() {
     priceEl.innerHTML = p !== '' ? `<span class="pill">£${p}</span>` : '<span class="pill">—</span>';
         // LOS indicator: colored dot if a second LOS tier exists
         const rec = rulesState.baseRates[pid] || {};
-        const los = Array.isArray(rec.los) ? rec.los.slice().sort((a,b)=>(a.min_days??0)-(b.min_days??0)) : [];
+        const los = Array.isArray(rulesState.global_los) && rulesState.global_los.length
+          ? rulesState.global_los.slice().sort((a,b)=>(a.min_days??0)-(b.min_days??0))
+          : (Array.isArray(rec.los) ? rec.los.slice().sort((a,b)=>(a.min_days??0)-(b.min_days??0)) : []);
         if (los.length > 1) {
           const second = los[1];
           const dot = document.createElement('div');
@@ -987,14 +975,10 @@ function closeOverrideModal() {
 }
 
 // Keep rules file inputs in sync (3 fields)
-const rulesFile3 = document.getElementById('rulesFile3');
-rulesFileInput.addEventListener('input', () => { rulesFile2.value = rulesFileInput.value; rulesFile3.value = rulesFileInput.value; });
-rulesFile2.addEventListener('input', () => { rulesFileInput.value = rulesFile2.value; rulesFile3.value = rulesFile2.value; });
-rulesFile3.addEventListener('input', () => { rulesFileInput.value = rulesFile3.value; rulesFile2.value = rulesFile3.value; });
-rulesFile3.addEventListener('change', () => { loadRules().catch(() => {}); });
+// no secondary rules file inputs
 
 // After loading properties or rules, sync calendar property select
 const origLoadProps = loadPropertiesAndRender;
 loadPropertiesAndRender = async function() { await origLoadProps(); syncCalProps(); };
 const origLoadRules = loadRules;
-loadRules = async function() { await origLoadRules(); renderSeasons(); updateBaseMinForSelectedProp(); renderLos(); renderCalendar(); renderSeasonLegend(); };
+loadRules = async function() { await origLoadRules(); renderSeasons(); updateBaseMinForSelectedProp(); renderGlobalLos(); renderCalendar(); renderSeasonLegend(); };
