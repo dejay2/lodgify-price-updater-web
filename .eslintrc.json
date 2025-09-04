@@ -9,13 +9,6 @@
     "sourceType": "module"
   },
   "extends": ["eslint:recommended"],
-  "ignorePatterns": [
-    "node_modules/",
-    "payload_logs/",
-    "dist/",
-    "build/",
-    "coverage/"
-  ],
+  "ignorePatterns": ["node_modules/", "payload_logs/", "dist/", "build/", "coverage/"],
   "rules": {}
 }
-

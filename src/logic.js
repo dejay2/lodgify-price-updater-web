@@ -24,9 +24,11 @@ export async function runUpdate({ apiKey, settings, postRates }) {
 
   log('Fetching properties…');
   const allProps = await fetchProperties(apiKey);
-  const selectedPropIds = settings.selectedPropertyIds?.length ? new Set(settings.selectedPropertyIds) : null;
+  const selectedPropIds = settings.selectedPropertyIds?.length
+    ? new Set(settings.selectedPropertyIds)
+    : null;
   const propsToProcess = selectedPropIds
-    ? allProps.filter(p => selectedPropIds.has(String(p.id)))
+    ? allProps.filter((p) => selectedPropIds.has(String(p.id)))
     : allProps;
 
   if (!propsToProcess.length) {
@@ -47,7 +49,8 @@ export async function runUpdate({ apiKey, settings, postRates }) {
     throw new Error('endDate must be on/after startDate');
   }
   // Enforce max 18 months window (inclusive of start day; end must be < start + 18 months)
-  const monthsDiff = (eDate.getFullYear() - sDate.getFullYear()) * 12 + (eDate.getMonth() - sDate.getMonth());
+  const monthsDiff =
+    (eDate.getFullYear() - sDate.getFullYear()) * 12 + (eDate.getMonth() - sDate.getMonth());
   const tooLong = monthsDiff > 18 || (monthsDiff === 18 && eDate.getDate() >= sDate.getDate());
   if (tooLong) {
     throw new Error('Date range exceeds 18 months. Please reduce the range.');
@@ -98,7 +101,12 @@ export async function runUpdate({ apiKey, settings, postRates }) {
       try {
         const payloadDir = path.join(process.cwd(), 'payload_logs');
         await fs.mkdir(payloadDir, { recursive: true });
-        const ts = new Date().toISOString().replaceAll(':', '').replaceAll('-', '').replace('T', '_').slice(0, 15);
+        const ts = new Date()
+          .toISOString()
+          .replaceAll(':', '')
+          .replaceAll('-', '')
+          .replace('T', '_')
+          .slice(0, 15);
         const fname = path.join(payloadDir, `payload_${ts}_prop${pid}_room${rid}.json`);
         await fs.writeFile(fname, JSON.stringify(payload, null, 2), 'utf-8');
         log(`Saved payload: ${fname}`);

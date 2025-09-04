@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   lint-and-format:
@@ -26,4 +26,3 @@ jobs:
 
       - name: Prettier check
         run: npm run format:check --silent
-

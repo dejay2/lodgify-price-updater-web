@@ -32,11 +32,21 @@ const saveSeasonsBtn = document.getElementById('saveSeasons');
 const toastContainer = document.getElementById('toast-container');
 
 // Default date range: today -> 18 months ahead (server enforces; UI displays if inputs exist)
-function fmtDate(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function fmtDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 const now = new Date();
 const startLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-const endExclusive = new Date(startLocal.getFullYear(), startLocal.getMonth()+18, startLocal.getDate());
-const endLocal = new Date(endExclusive.getFullYear(), endExclusive.getMonth(), endExclusive.getDate()-1);
+const endExclusive = new Date(
+  startLocal.getFullYear(),
+  startLocal.getMonth() + 18,
+  startLocal.getDate()
+);
+const endLocal = new Date(
+  endExclusive.getFullYear(),
+  endExclusive.getMonth(),
+  endExclusive.getDate() - 1
+);
 if (startDateInput) startDateInput.value = fmtDate(startLocal);
 if (endDateInput) endDateInput.value = fmtDate(endLocal);
 
@@ -46,12 +56,17 @@ function log(msg) {
 }
 
 function showToast(message, type = 'info', timeout = 2600) {
-  if (!toastContainer) { console[type === 'error' ? 'error' : 'log'](message); return; }
+  if (!toastContainer) {
+    console[type === 'error' ? 'error' : 'log'](message);
+    return;
+  }
   const div = document.createElement('div');
   div.className = `toast toast-${type}`;
   div.textContent = message;
   toastContainer.appendChild(div);
-  const remove = () => { if (div.parentNode) div.parentNode.removeChild(div); };
+  const remove = () => {
+    if (div.parentNode) div.parentNode.removeChild(div);
+  };
   setTimeout(remove, timeout);
 }
 
@@ -77,16 +92,31 @@ function renderOrchestrator() {
     propSelectCal.selectedIndex = 0;
   }
   // Hydrate property fields and LOS
-  try { updateBaseMinForSelectedProp(); } catch {}
-  try { renderGlobalLos(); } catch {}
+  try {
+    updateBaseMinForSelectedProp();
+  } catch {}
+  try {
+    renderGlobalLos();
+  } catch {}
   // Calendar and legend
-  try { renderCalendar(); } catch {}
-  try { renderSeasonLegend(); } catch {}
-  try { ensureBookingsLoaded(); } catch {}
-  try { loadSyncState(); } catch {}
+  try {
+    renderCalendar();
+  } catch {}
+  try {
+    renderSeasonLegend();
+  } catch {}
+  try {
+    ensureBookingsLoaded();
+  } catch {}
+  try {
+    loadSyncState();
+  } catch {}
 }
 
-loadPropsBtn.addEventListener('click', () => { propsDiv.innerHTML = 'Loading…'; loadPropertiesAndRender(); });
+loadPropsBtn.addEventListener('click', () => {
+  propsDiv.innerHTML = 'Loading…';
+  loadPropertiesAndRender();
+});
 
 async function loadPropertiesAndRender() {
   try {
@@ -133,10 +163,18 @@ function renderProperties(props) {
   actions.className = 'actions';
   const selectAll = document.createElement('button');
   selectAll.textContent = 'Select All';
-  selectAll.onclick = () => container.querySelectorAll('input[type=checkbox]').forEach(c => { c.checked = true; c.dispatchEvent(new Event('change')); });
+  selectAll.onclick = () =>
+    container.querySelectorAll('input[type=checkbox]').forEach((c) => {
+      c.checked = true;
+      c.dispatchEvent(new Event('change'));
+    });
   const deselectAll = document.createElement('button');
   deselectAll.textContent = 'Deselect All';
-  deselectAll.onclick = () => container.querySelectorAll('input[type=checkbox]').forEach(c => { c.checked = false; c.dispatchEvent(new Event('change')); });
+  deselectAll.onclick = () =>
+    container.querySelectorAll('input[type=checkbox]').forEach((c) => {
+      c.checked = false;
+      c.dispatchEvent(new Event('change'));
+    });
   actions.appendChild(selectAll);
   actions.appendChild(deselectAll);
   propsDiv.appendChild(actions);
@@ -190,10 +228,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const tabs = document.querySelectorAll('.tab');
   const pages = document.querySelectorAll('.page');
   function show(page) {
-    tabs.forEach(t => t.classList.toggle('active', t.dataset.page === page));
-    pages.forEach(p => p.classList.toggle('active', p.dataset.page === page));
+    tabs.forEach((t) => t.classList.toggle('active', t.dataset.page === page));
+    pages.forEach((p) => p.classList.toggle('active', p.dataset.page === page));
   }
-  tabs.forEach(t => t.addEventListener('click', () => show(t.dataset.page)));
+  tabs.forEach((t) => t.addEventListener('click', () => show(t.dataset.page)));
   show('calendar');
   // Automatically load properties on start
   propsDiv.innerHTML = 'Loading…';
@@ -204,7 +242,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 runBtn.addEventListener('click', async () => {
   const selected = Array.from(propsDiv.querySelectorAll('.prop-list input[type=checkbox]'))
-    .filter(c => c.checked).map(c => c.value);
+    .filter((c) => c.checked)
+    .map((c) => c.value);
   const body = {
     // start/end computed server-side; omit here
     windowDays: Number(windowDaysInput.value),
@@ -225,7 +264,9 @@ runBtn.addEventListener('click', async () => {
     const data = await r.json();
     if (!r.ok) throw new Error(data?.error || `HTTP ${r.status}`);
     for (const line of data.logs || []) log(line);
-    log(`Summary: success=${data.success} failed=${data.failed} skipped=${data.skipped} dry_run=${data.dry_run}`);
+    log(
+      `Summary: success=${data.success} failed=${data.failed} skipped=${data.skipped} dry_run=${data.dry_run}`
+    );
   } catch (e) {
     log(`Error: ${e.message}`);
   }
@@ -243,7 +284,9 @@ importBookingsBtn.addEventListener('click', async () => {
       const msg = data?.error || data?.errorText?.slice(0, 140) || `HTTP ${r.status}`;
       throw new Error(msg);
     }
-    log(`Imported ${data.itemsSaved} bookings (count=${data.count}, pages=${data.pages}) → ${data.saved}; merged ${data.mergedToStore}, removed ${data.removedFromStore ?? 0} (store ${data.storeCount})`);
+    log(
+      `Imported ${data.itemsSaved} bookings (count=${data.count}, pages=${data.pages}) → ${data.saved}; merged ${data.mergedToStore}, removed ${data.removedFromStore ?? 0} (store ${data.storeCount})`
+    );
     showToast('Upcoming bookings imported', 'success');
     await loadLocalBookings().catch(() => {});
     renderCalendar();
@@ -265,7 +308,9 @@ importAllBookingsBtn.addEventListener('click', async () => {
       const msg = data?.error || data?.errorText?.slice(0, 140) || `HTTP ${r.status}`;
       throw new Error(msg);
     }
-    log(`Imported ${data.itemsSaved} bookings (count=${data.count}, pages=${data.pages}) → ${data.saved}; merged ${data.mergedToStore}, removed ${data.removedFromStore ?? 0} (store ${data.storeCount})`);
+    log(
+      `Imported ${data.itemsSaved} bookings (count=${data.count}, pages=${data.pages}) → ${data.saved}; merged ${data.mergedToStore}, removed ${data.removedFromStore ?? 0} (store ${data.storeCount})`
+    );
     showToast('All bookings imported', 'success');
     await loadLocalBookings().catch(() => {});
     renderCalendar();
@@ -286,7 +331,9 @@ syncUpdatesBtn.addEventListener('click', async () => {
       const msg = data?.error || data?.errorText?.slice(0, 140) || `HTTP ${r.status}`;
       throw new Error(msg);
     }
-    log(`Synced updates since '${data.sinceUsed}', fetched=${data.fetched}, merged=${data.mergedToStore}, removed=${data.removedFromStore ?? 0} (store=${data.storeCount}), nextSince='${data.nextSince}'`);
+    log(
+      `Synced updates since '${data.sinceUsed}', fetched=${data.fetched}, merged=${data.mergedToStore}, removed=${data.removedFromStore ?? 0} (store=${data.storeCount}), nextSince='${data.nextSince}'`
+    );
     showToast('Updates synced', 'success');
     if (lastSyncAtInput) lastSyncAtInput.value = data?.nextSince || '';
     await loadLocalBookings().catch(() => {});
@@ -301,14 +348,24 @@ syncUpdatesBtn.addEventListener('click', async () => {
 propSelectRules.addEventListener('change', updateBaseMinForSelectedProp);
 // Ensure save button state resets on property change
 propSelectRules.addEventListener('change', () => {
-  if (saveRatesBtn) { saveRatesBtn.disabled = false; saveRatesBtn.textContent = 'Save'; }
+  if (saveRatesBtn) {
+    saveRatesBtn.disabled = false;
+    saveRatesBtn.textContent = 'Save';
+  }
 });
 loadRulesBtn.addEventListener('click', async () => {
-  try { await loadRules(); showToast('Rules loaded', 'success'); }
-  catch (e) { showToast(`Failed to load rules: ${e.message}`, 'error', 4000); }
+  try {
+    await loadRules();
+    showToast('Rules loaded', 'success');
+  } catch (e) {
+    showToast(`Failed to load rules: ${e.message}`, 'error', 4000);
+  }
 });
 saveRatesBtn.addEventListener('click', async (e) => {
-  const btn = e.currentTarget; const prev = btn.textContent; btn.textContent = 'Saving…'; btn.disabled = true;
+  const btn = e.currentTarget;
+  const prev = btn.textContent;
+  btn.textContent = 'Saving…';
+  btn.disabled = true;
   const pid = propSelectRules.value;
   if (!pid) return;
   const existing = rulesState.baseRates[pid] || {};
@@ -317,14 +374,22 @@ saveRatesBtn.addEventListener('click', async (e) => {
     base: Number(baseRateInput.value || 0),
     min: Number(minRateInput.value || 0),
     weekend_pct: Number(weekendRateInput?.value || 0),
-    price_per_additional_guest: Number(typeof ppagInput !== 'undefined' && ppagInput ? (ppagInput.value || 0) : 0),
-    additional_guests_starts_from: Number(typeof addlFromInput !== 'undefined' && addlFromInput ? (addlFromInput.value || 0) : 0),
+    price_per_additional_guest: Number(
+      typeof ppagInput !== 'undefined' && ppagInput ? ppagInput.value || 0 : 0
+    ),
+    additional_guests_starts_from: Number(
+      typeof addlFromInput !== 'undefined' && addlFromInput ? addlFromInput.value || 0 : 0
+    ),
     los: Array.isArray(existing.los) ? existing.los : [],
   };
-  try { await saveRules(); showToast('Settings saved', 'success'); }
-  catch (err) { showToast(err?.message || 'Failed to save base/min', 'error', 5000); }
-  finally {
-    btn.textContent = prev; btn.disabled = false;
+  try {
+    await saveRules();
+    showToast('Settings saved', 'success');
+  } catch (err) {
+    showToast(err?.message || 'Failed to save base/min', 'error', 5000);
+  } finally {
+    btn.textContent = prev;
+    btn.disabled = false;
     // Rehydrate from disk to confirm and reflect persisted values
     loadRules().catch(() => {});
   }
@@ -334,10 +399,19 @@ addSeasonBtn.addEventListener('click', () => {
   renderSeasons();
 });
 saveSeasonsBtn.addEventListener('click', async (e) => {
-  const btn = e.currentTarget; const prev = btn.textContent; btn.textContent = 'Saving…'; btn.disabled = true;
-  try { await saveRules(); showToast('Seasons saved', 'success'); }
-  catch (err) { showToast(err?.message || 'Failed to save seasons', 'error', 5000); }
-  finally { btn.textContent = prev; btn.disabled = false; }
+  const btn = e.currentTarget;
+  const prev = btn.textContent;
+  btn.textContent = 'Saving…';
+  btn.disabled = true;
+  try {
+    await saveRules();
+    showToast('Seasons saved', 'success');
+  } catch (err) {
+    showToast(err?.message || 'Failed to save seasons', 'error', 5000);
+  } finally {
+    btn.textContent = prev;
+    btn.disabled = false;
+  }
 });
 
 async function loadRules() {
@@ -348,7 +422,8 @@ async function loadRules() {
   rulesState = data || { baseRates: {}, seasons: [], overrides: {}, settings: {} };
   if (!rulesState.overrides) rulesState.overrides = {};
   if (!rulesState.settings) rulesState.settings = {};
-  if (overrideColorInput) overrideColorInput.value = rulesState.settings.override_color || '#ffd1dc';
+  if (overrideColorInput)
+    overrideColorInput.value = rulesState.settings.override_color || '#ffd1dc';
   renderSeasons();
   appReady.rules = true;
   renderOrchestrator();
@@ -375,15 +450,19 @@ function renderSeasons() {
   seasonsDiv.innerHTML = '';
   seasonsDiv.appendChild(tbl);
 
-  seasonsDiv.querySelectorAll('input').forEach(inp => {
+  seasonsDiv.querySelectorAll('input').forEach((inp) => {
     inp.addEventListener('change', () => {
       const i = Number(inp.dataset.i);
       const k = inp.dataset.k;
       rulesState.seasons[i][k] = inp.type === 'number' ? Number(inp.value) : inp.value;
     });
   });
-  seasonsDiv.querySelectorAll('button[data-del]').forEach(btn => {
-    btn.onclick = () => { const i = Number(btn.dataset.del); rulesState.seasons.splice(i, 1); renderSeasons(); };
+  seasonsDiv.querySelectorAll('button[data-del]').forEach((btn) => {
+    btn.onclick = () => {
+      const i = Number(btn.dataset.del);
+      rulesState.seasons.splice(i, 1);
+      renderSeasons();
+    };
   });
 }
 
@@ -392,8 +471,10 @@ function updateBaseMinForSelectedProp() {
   const rec = rulesState.baseRates[pid] || {};
   baseRateInput.value = rec.base ?? rec.baseRate ?? '';
   minRateInput.value = rec.min ?? rec.minRate ?? '';
-  if (weekendRateInput) weekendRateInput.value = rec.weekend_pct ?? rec.weekendPct ?? rec.weekend ?? 0;
-  if (ppagInput) ppagInput.value = rec.price_per_additional_guest ?? rec.additional_guest_price ?? 0;
+  if (weekendRateInput)
+    weekendRateInput.value = rec.weekend_pct ?? rec.weekendPct ?? rec.weekend ?? 0;
+  if (ppagInput)
+    ppagInput.value = rec.price_per_additional_guest ?? rec.additional_guest_price ?? 0;
   if (addlFromInput) addlFromInput.value = rec.additional_guests_starts_from ?? rec.addl_from ?? 0;
   renderGlobalLos();
 }
@@ -401,18 +482,34 @@ function updateBaseMinForSelectedProp() {
 async function saveRules() {
   const file = rulesFileInput.value || 'price_rules.json';
   if (!rulesState.settings) rulesState.settings = {};
-  rulesState.settings.override_color = overrideColorInput?.value || rulesState.settings.override_color || '#ffd1dc';
-  const body = { rulesFile: file, baseRates: rulesState.baseRates, seasons: rulesState.seasons, overrides: rulesState.overrides || {}, settings: rulesState.settings };
-  const r = await fetch('/api/rules', { method: 'POST', headers: headers(), body: JSON.stringify(body) });
+  rulesState.settings.override_color =
+    overrideColorInput?.value || rulesState.settings.override_color || '#ffd1dc';
+  const body = {
+    rulesFile: file,
+    baseRates: rulesState.baseRates,
+    seasons: rulesState.seasons,
+    overrides: rulesState.overrides || {},
+    settings: rulesState.settings,
+  };
+  const r = await fetch('/api/rules', {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify(body),
+  });
   if (!r.ok) {
     let msg = 'Failed to save rules';
-    try { const data = await r.json(); if (data?.error) msg = data.error; } catch {}
+    try {
+      const data = await r.json();
+      if (data?.error) msg = data.error;
+    } catch {}
     throw new Error(msg);
   }
 }
 
 // Auto-reload rules when rules file changes
-rulesFileInput.addEventListener('change', () => { loadRules().catch(() => {}); });
+rulesFileInput.addEventListener('change', () => {
+  loadRules().catch(() => {});
+});
 
 // ---------- LOS rules (per property) ----------
 const losGlobalDiv = document.getElementById('losGlobal');
@@ -425,7 +522,9 @@ function getGlobalLos() {
 }
 
 function renderGlobalLos() {
-  const los = getGlobalLos().slice().sort((a, b) => (a.min_days ?? 0) - (b.min_days ?? 0));
+  const los = getGlobalLos()
+    .slice()
+    .sort((a, b) => (a.min_days ?? 0) - (b.min_days ?? 0));
   const tbl = document.createElement('table');
   tbl.className = 'seasons-table';
   tbl.innerHTML = `<thead><tr><th>Name</th><th>Min Days</th><th>Max Days</th><th>Discount %</th><th>Color</th><th></th></tr></thead>`;
@@ -445,16 +544,22 @@ function renderGlobalLos() {
   tbl.appendChild(tbody);
   losGlobalDiv.innerHTML = '';
   losGlobalDiv.appendChild(tbl);
-  losGlobalDiv.querySelectorAll('input').forEach(inp => {
+  losGlobalDiv.querySelectorAll('input').forEach((inp) => {
     inp.addEventListener('change', () => {
-      const i = Number(inp.dataset.i); const k = inp.dataset.k;
+      const i = Number(inp.dataset.i);
+      const k = inp.dataset.k;
       const list = getGlobalLos();
       if (!list[i]) list[i] = {};
       list[i][k] = inp.type === 'number' ? Number(inp.value) : inp.value;
     });
   });
-  losGlobalDiv.querySelectorAll('button[data-del]').forEach(btn => {
-    btn.onclick = () => { const i = Number(btn.dataset.del); const list = getGlobalLos(); list.splice(i, 1); renderGlobalLos(); };
+  losGlobalDiv.querySelectorAll('button[data-del]').forEach((btn) => {
+    btn.onclick = () => {
+      const i = Number(btn.dataset.del);
+      const list = getGlobalLos();
+      list.splice(i, 1);
+      renderGlobalLos();
+    };
   });
 }
 
@@ -479,10 +584,19 @@ addLosGlobalBtn.addEventListener('click', () => {
 });
 
 saveLosGlobalBtn.addEventListener('click', async (e) => {
-  const btn = e.currentTarget; const prev = btn.textContent; btn.textContent = 'Saving…'; btn.disabled = true;
-  try { await saveRules(); showToast('LOS saved', 'success'); }
-  catch (err) { showToast(err?.message || 'Failed to save LOS', 'error', 5000); }
-  finally { btn.textContent = prev; btn.disabled = false; }
+  const btn = e.currentTarget;
+  const prev = btn.textContent;
+  btn.textContent = 'Saving…';
+  btn.disabled = true;
+  try {
+    await saveRules();
+    showToast('LOS saved', 'success');
+  } catch (err) {
+    showToast(err?.message || 'Failed to save LOS', 'error', 5000);
+  } finally {
+    btn.textContent = prev;
+    btn.disabled = false;
+  }
 });
 
 // ---------- Calendar Preview (rules) ----------
@@ -529,23 +643,39 @@ async function loadSyncState() {
 function ensureBookingsLoaded() {
   if (bookingsLoadStarted) return;
   bookingsLoadStarted = true;
-  loadLocalBookings().then(() => { try { renderCalendar(); } catch {} }).catch(() => {});
+  loadLocalBookings()
+    .then(() => {
+      try {
+        renderCalendar();
+      } catch {}
+    })
+    .catch(() => {});
 }
 function getBookingPropId(b) {
   return (
-    b?.property_id ?? b?.propertyId ?? b?.houseId ?? b?.accommodationId ?? b?.property?.id ?? b?.house?.id ?? null
+    b?.property_id ??
+    b?.propertyId ??
+    b?.houseId ??
+    b?.accommodationId ??
+    b?.property?.id ??
+    b?.house?.id ??
+    null
   );
 }
 function getBookingChannel(b) {
-  const raw = (b?.channelName ?? b?.channel ?? b?.source ?? b?.origin ?? '').toString().toLowerCase();
+  const raw = (b?.channelName ?? b?.channel ?? b?.source ?? b?.origin ?? '')
+    .toString()
+    .toLowerCase();
   if (!raw) return 'other';
   if (raw.includes('airbnb')) return 'airbnb';
   if (raw.includes('booking')) return 'booking';
   return 'other';
 }
 function getBookingDates(b) {
-  const inRaw = b?.arrivalDate ?? b?.checkIn ?? b?.checkInDate ?? b?.startDate ?? b?.arrival ?? null;
-  const outRaw = b?.departureDate ?? b?.checkOut ?? b?.checkOutDate ?? b?.endDate ?? b?.departure ?? null;
+  const inRaw =
+    b?.arrivalDate ?? b?.checkIn ?? b?.checkInDate ?? b?.startDate ?? b?.arrival ?? null;
+  const outRaw =
+    b?.departureDate ?? b?.checkOut ?? b?.checkOutDate ?? b?.endDate ?? b?.departure ?? null;
   const fmt = (s) => (typeof s === 'string' && s.length >= 10 ? s.slice(0, 10) : null);
   return [fmt(inRaw), fmt(outRaw)];
 }
@@ -557,8 +687,10 @@ function dateInRange(ds, start, endExclusive) {
 const calSelection = { active: false, start: null, end: null };
 let calMouseUpHandler = null;
 function clearCalSelection() {
-  calSelection.active = false; calSelection.start = null; calSelection.end = null;
-  calDiv.querySelectorAll('.cal-cell.selected').forEach(el => el.classList.remove('selected'));
+  calSelection.active = false;
+  calSelection.start = null;
+  calSelection.end = null;
+  calDiv.querySelectorAll('.cal-cell.selected').forEach((el) => el.classList.remove('selected'));
 }
 function datesInRange(startDs, endDs) {
   const a = startDs < endDs ? startDs : endDs;
@@ -567,14 +699,16 @@ function datesInRange(startDs, endDs) {
   const sd = new Date(a + 'T00:00:00');
   const ed = new Date(b + 'T00:00:00');
   for (let d = new Date(sd); d <= ed; d.setDate(d.getDate() + 1)) {
-    out.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
+    out.push(
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    );
   }
   return out;
 }
 function highlightRange(startDs, endDs) {
   const a = startDs < endDs ? startDs : endDs;
   const b = startDs < endDs ? endDs : startDs;
-  calDiv.querySelectorAll('.cal-cell[data-date]').forEach(el => {
+  calDiv.querySelectorAll('.cal-cell[data-date]').forEach((el) => {
     const ds = el.getAttribute('data-date');
     const sel = ds >= a && ds <= b;
     el.classList.toggle('selected', sel);
@@ -588,16 +722,22 @@ function hexToRgba(hex, alpha = 0.22) {
     if (typeof hex !== 'string') return hex;
     const h = hex.trim();
     if (!h.startsWith('#')) return hex;
-    let r, g, b, a = 1;
-    if (h.length === 4) { // #rgb
+    let r,
+      g,
+      b,
+      a = 1;
+    if (h.length === 4) {
+      // #rgb
       r = parseInt(h[1] + h[1], 16);
       g = parseInt(h[2] + h[2], 16);
       b = parseInt(h[3] + h[3], 16);
-    } else if (h.length === 7) { // #rrggbb
+    } else if (h.length === 7) {
+      // #rrggbb
       r = parseInt(h.slice(1, 3), 16);
       g = parseInt(h.slice(3, 5), 16);
       b = parseInt(h.slice(5, 7), 16);
-    } else if (h.length === 9) { // #rrggbbaa
+    } else if (h.length === 9) {
+      // #rrggbbaa
       r = parseInt(h.slice(1, 3), 16);
       g = parseInt(h.slice(3, 5), 16);
       b = parseInt(h.slice(5, 7), 16);
@@ -606,7 +746,7 @@ function hexToRgba(hex, alpha = 0.22) {
       return hex;
     }
     // If input already had alpha (#rrggbbaa), respect it; otherwise apply provided alpha
-    const hasExplicitAlpha = (h.length === 9);
+    const hasExplicitAlpha = h.length === 9;
     const outA = hasExplicitAlpha ? a : Math.max(0, Math.min(1, alpha));
     return `rgba(${r}, ${g}, ${b}, ${outA})`;
   } catch {
@@ -648,7 +788,10 @@ function getSeasonForDate(ds) {
     if (!s.start || !s.end) continue;
     const sd = new Date(s.start + 'T00:00:00');
     const ed = new Date(s.end + 'T00:00:00');
-    if (d >= sd && d <= ed) { match = s; break; }
+    if (d >= sd && d <= ed) {
+      match = s;
+      break;
+    }
   }
   return match;
 }
@@ -660,17 +803,20 @@ function computeOneNightPrice(ds, pid) {
   const minRate = Number(rec.min || 0);
   // Override check
   const olist = rulesState.overrides?.[pid] || [];
-  const ovr = Array.isArray(olist) ? olist.find(o => o.date === ds) : null;
+  const ovr = Array.isArray(olist) ? olist.find((o) => o.date === ds) : null;
   if (ovr && ovr.price > 0) {
     return Math.floor(Number(ovr.price));
   }
   const seasonPct = getSeasonPctForDate(ds);
   const baseAdj = Math.floor(base * (1 + seasonPct / 100));
   // find LOS that covers 1 night
-  const los = Array.isArray(rulesState.global_los) && rulesState.global_los.length
-    ? rulesState.global_los
-    : (Array.isArray(rec.los) ? rec.los : []);
-  const cover = los.find(r => (r.min_days ?? 1) <= 1 && (r.max_days == null || r.max_days >= 1));
+  const los =
+    Array.isArray(rulesState.global_los) && rulesState.global_los.length
+      ? rulesState.global_los
+      : Array.isArray(rec.los)
+        ? rec.los
+        : [];
+  const cover = los.find((r) => (r.min_days ?? 1) <= 1 && (r.max_days == null || r.max_days >= 1));
   let price = baseAdj;
   if (cover) price = Math.floor(baseAdj * (1 - Math.abs(cover.percent || 0) / 100));
   // Weekend uplift for Fri/Sat
@@ -679,7 +825,7 @@ function computeOneNightPrice(ds, pid) {
   const isWeekend = day === 5 || day === 6;
   const weekendPct = Number(rec.weekend_pct || rec.weekendPct || rec.weekend || 0);
   if (isWeekend && weekendPct) price = Math.floor(price * (1 + Math.abs(weekendPct) / 100));
-  const globalMin = Number((minPriceInput?.value) || 0);
+  const globalMin = Number(minPriceInput?.value || 0);
   price = Math.max(price, minRate || 0, globalMin || 0);
   return price;
 }
@@ -711,25 +857,35 @@ function renderCalendar() {
 
   const header = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const frag = document.createDocumentFragment();
-  const head = document.createElement('div'); head.className = 'cal-header';
-  for (const h of header) { const div = document.createElement('div'); div.textContent = h; head.appendChild(div); }
+  const head = document.createElement('div');
+  head.className = 'cal-header';
+  for (const h of header) {
+    const div = document.createElement('div');
+    div.textContent = h;
+    head.appendChild(div);
+  }
   frag.appendChild(head);
 
   for (let i = 0; i < cells.length; i += 7) {
-    const row = document.createElement('div'); row.className = 'cal-row';
+    const row = document.createElement('div');
+    row.className = 'cal-row';
     for (let j = 0; j < 7; j++) {
       const cellDate = cells[i + j];
-      const cell = document.createElement('div'); cell.className = 'cal-cell' + (!cellDate ? ' muted' : '');
+      const cell = document.createElement('div');
+      cell.className = 'cal-cell' + (!cellDate ? ' muted' : '');
       if (cellDate) {
-        const ds = `${cellDate.getFullYear()}-${String(cellDate.getMonth()+1).padStart(2,'0')}-${String(cellDate.getDate()).padStart(2,'0')}`;
+        const ds = `${cellDate.getFullYear()}-${String(cellDate.getMonth() + 1).padStart(2, '0')}-${String(cellDate.getDate()).padStart(2, '0')}`;
         cell.dataset.date = ds;
-        const dateEl = document.createElement('div'); dateEl.className = 'cal-date'; dateEl.textContent = cellDate.getDate();
+        const dateEl = document.createElement('div');
+        dateEl.className = 'cal-date';
+        dateEl.textContent = cellDate.getDate();
         // Flags
         const olist = rulesState.overrides?.[pid] || [];
-        const hasOverride = Array.isArray(olist) ? olist.some(o => o.date === ds) : false;
+        const hasOverride = Array.isArray(olist) ? olist.some((o) => o.date === ds) : false;
         const day = cellDate.getDay();
         const isWeekend = day === 5 || day === 6;
-        const today = new Date(); const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
         if (isWeekend) cell.classList.add('weekend');
         if (ds === todayStr) cell.classList.add('today');
         if (hasOverride) cell.classList.add('override');
@@ -746,14 +902,19 @@ function renderCalendar() {
           bar.style.background = col;
           cell.appendChild(bar);
         }
-        const priceEl = document.createElement('div'); priceEl.className = 'cal-price';
-    const p = computeOneNightPrice(ds, pid);
-    priceEl.innerHTML = p !== '' ? `<span class="pill">£${p}</span>` : '<span class="pill">—</span>';
+        const priceEl = document.createElement('div');
+        priceEl.className = 'cal-price';
+        const p = computeOneNightPrice(ds, pid);
+        priceEl.innerHTML =
+          p !== '' ? `<span class="pill">£${p}</span>` : '<span class="pill">—</span>';
         // LOS indicator: colored dot if a second LOS tier exists
         const rec = rulesState.baseRates[pid] || {};
-        const los = Array.isArray(rulesState.global_los) && rulesState.global_los.length
-          ? rulesState.global_los.slice().sort((a,b)=>(a.min_days??0)-(b.min_days??0))
-          : (Array.isArray(rec.los) ? rec.los.slice().sort((a,b)=>(a.min_days??0)-(b.min_days??0)) : []);
+        const los =
+          Array.isArray(rulesState.global_los) && rulesState.global_los.length
+            ? rulesState.global_los.slice().sort((a, b) => (a.min_days ?? 0) - (b.min_days ?? 0))
+            : Array.isArray(rec.los)
+              ? rec.los.slice().sort((a, b) => (a.min_days ?? 0) - (b.min_days ?? 0))
+              : [];
         if (los.length > 1) {
           const second = los[1];
           const dot = document.createElement('div');
@@ -766,7 +927,7 @@ function renderCalendar() {
         try {
           const pidNum = Number(pid);
           const list = Array.isArray(bookingsCache?.items) ? bookingsCache.items : [];
-          const matches = list.filter(b => {
+          const matches = list.filter((b) => {
             const status = (b?.status ?? b?.bookingStatus ?? '').toString().toLowerCase();
             if (status !== 'booked') return false;
             const propId = Number(getBookingPropId(b));
@@ -783,17 +944,21 @@ function renderCalendar() {
           }
         } catch {}
 
-        cell.appendChild(dateEl); cell.appendChild(priceEl);
+        cell.appendChild(dateEl);
+        cell.appendChild(priceEl);
         // Range selection: mouse down to start, drag to extend, mouse up to finalize
         cell.addEventListener('mousedown', (e) => {
           if (!ds) return;
           e.preventDefault();
-          calSelection.active = true; calSelection.start = ds; calSelection.end = ds;
+          calSelection.active = true;
+          calSelection.start = ds;
+          calSelection.end = ds;
           highlightRange(calSelection.start, calSelection.end);
           if (!calMouseUpHandler) {
             calMouseUpHandler = (ev) => {
               if (!calSelection.active) return;
-              const start = calSelection.start; const end = calSelection.end || calSelection.start;
+              const start = calSelection.start;
+              const end = calSelection.end || calSelection.start;
               const list = datesInRange(start, end);
               clearCalSelection();
               document.removeEventListener('mouseup', calMouseUpHandler);
@@ -825,7 +990,7 @@ monthInput?.addEventListener('change', renderCalendar);
 function changeMonth(delta) {
   if (!monthInput.value) return;
   const [yy, mm] = monthInput.value.split('-').map(Number);
-  const d = new Date(yy, (mm - 1) + delta, 1);
+  const d = new Date(yy, mm - 1 + delta, 1);
   const m = String(d.getMonth() + 1).padStart(2, '0');
   monthInput.value = `${d.getFullYear()}-${m}`;
   renderCalendar();
@@ -860,7 +1025,8 @@ function renderSeasonLegend() {
     sw.style.borderColor = '#888';
     const txt = document.createElement('span');
     txt.textContent = s.name || '(unnamed)';
-    item.appendChild(sw); item.appendChild(txt);
+    item.appendChild(sw);
+    item.appendChild(txt);
     frag.appendChild(item);
   }
   seasonLegendDiv.innerHTML = '';
@@ -869,10 +1035,10 @@ function renderSeasonLegend() {
 
 function openOverrideModal(ds) {
   const pid = propSelectCal.value;
-  const prop = (allPropsCache || []).find(p => String(p.id) === String(pid));
+  const prop = (allPropsCache || []).find((p) => String(p.id) === String(pid));
   if (!rulesState.overrides) rulesState.overrides = {};
   const list = rulesState.overrides[pid] || (rulesState.overrides[pid] = []);
-  const existing = list.find(o => o.date === ds) || null;
+  const existing = list.find((o) => o.date === ds) || null;
   ovrDateDisplay.textContent = ds;
   ovrPropName.textContent = prop?.name ? `(${prop.name})` : `Property ${pid}`;
   ovrPrice.value = existing?.price ?? '';
@@ -885,37 +1051,43 @@ function openOverrideModal(ds) {
     const price = Number(ovrPrice.value || 0);
     const min_stay = ovrMin.value ? Number(ovrMin.value) : null;
     const max_stay = ovrMax.value ? Number(ovrMax.value) : null;
-    const idx = list.findIndex(o => o.date === ds);
+    const idx = list.findIndex((o) => o.date === ds);
     if (price > 0) {
       const rec = { date: ds, price, min_stay, max_stay };
-      if (idx >= 0) list[idx] = rec; else list.push(rec);
-      await saveRules().catch(e => showToast(e.message, 'error'));
+      if (idx >= 0) list[idx] = rec;
+      else list.push(rec);
+      await saveRules().catch((e) => showToast(e.message, 'error'));
       showToast('Override saved', 'success');
     } else {
       if (idx >= 0) list.splice(idx, 1);
-      await saveRules().catch(e => showToast(e.message, 'error'));
+      await saveRules().catch((e) => showToast(e.message, 'error'));
       showToast('Override removed', 'success');
     }
     closeOverrideModal();
     renderCalendar();
   };
   ovrDelete.onclick = async () => {
-    const idx = list.findIndex(o => o.date === ds);
+    const idx = list.findIndex((o) => o.date === ds);
     if (idx >= 0) list.splice(idx, 1);
-    await saveRules().catch(e => showToast(e.message, 'error'));
+    await saveRules().catch((e) => showToast(e.message, 'error'));
     showToast('Override removed', 'success');
     closeOverrideModal();
     renderCalendar();
   };
   ovrCancel.onclick = () => closeOverrideModal();
-  const onBackdrop = (e) => { if (e.target === overrideModal) { closeOverrideModal(); overrideModal.removeEventListener('click', onBackdrop); } };
+  const onBackdrop = (e) => {
+    if (e.target === overrideModal) {
+      closeOverrideModal();
+      overrideModal.removeEventListener('click', onBackdrop);
+    }
+  };
   overrideModal.addEventListener('click', onBackdrop);
 }
 
 function openRangeOverrideModal(dateList) {
   if (!Array.isArray(dateList) || dateList.length === 0) return;
   const pid = propSelectCal.value;
-  const prop = (allPropsCache || []).find(p => String(p.id) === String(pid));
+  const prop = (allPropsCache || []).find((p) => String(p.id) === String(pid));
   if (!rulesState.overrides) rulesState.overrides = {};
   const list = rulesState.overrides[pid] || (rulesState.overrides[pid] = []);
   const sorted = dateList.slice().sort();
@@ -936,19 +1108,20 @@ function openRangeOverrideModal(dateList) {
     const max_stay = ovrMax.value ? Number(ovrMax.value) : null;
     if (price > 0) {
       for (const ds of sorted) {
-        const idx = list.findIndex(o => o.date === ds);
+        const idx = list.findIndex((o) => o.date === ds);
         const rec = { date: ds, price, min_stay, max_stay };
-        if (idx >= 0) list[idx] = rec; else list.push(rec);
+        if (idx >= 0) list[idx] = rec;
+        else list.push(rec);
       }
-      await saveRules().catch(e => showToast(e.message, 'error'));
+      await saveRules().catch((e) => showToast(e.message, 'error'));
       showToast(`Overrides saved for ${sorted.length} days`, 'success');
     } else {
       // If price not set, treat as removal for range
       for (const ds of sorted) {
-        const idx = list.findIndex(o => o.date === ds);
+        const idx = list.findIndex((o) => o.date === ds);
         if (idx >= 0) list.splice(idx, 1);
       }
-      await saveRules().catch(e => showToast(e.message, 'error'));
+      await saveRules().catch((e) => showToast(e.message, 'error'));
       showToast(`Overrides removed for ${sorted.length} days`, 'success');
     }
     closeOverrideModal();
@@ -956,16 +1129,21 @@ function openRangeOverrideModal(dateList) {
   };
   ovrDelete.onclick = async () => {
     for (const ds of sorted) {
-      const idx = list.findIndex(o => o.date === ds);
+      const idx = list.findIndex((o) => o.date === ds);
       if (idx >= 0) list.splice(idx, 1);
     }
-    await saveRules().catch(e => showToast(e.message, 'error'));
+    await saveRules().catch((e) => showToast(e.message, 'error'));
     showToast(`Overrides removed for ${sorted.length} days`, 'success');
     closeOverrideModal();
     renderCalendar();
   };
   ovrCancel.onclick = () => closeOverrideModal();
-  const onBackdrop = (e) => { if (e.target === overrideModal) { closeOverrideModal(); overrideModal.removeEventListener('click', onBackdrop); } };
+  const onBackdrop = (e) => {
+    if (e.target === overrideModal) {
+      closeOverrideModal();
+      overrideModal.removeEventListener('click', onBackdrop);
+    }
+  };
   overrideModal.addEventListener('click', onBackdrop);
 }
 
@@ -979,6 +1157,16 @@ function closeOverrideModal() {
 
 // After loading properties or rules, sync calendar property select
 const origLoadProps = loadPropertiesAndRender;
-loadPropertiesAndRender = async function() { await origLoadProps(); syncCalProps(); };
+loadPropertiesAndRender = async function () {
+  await origLoadProps();
+  syncCalProps();
+};
 const origLoadRules = loadRules;
-loadRules = async function() { await origLoadRules(); renderSeasons(); updateBaseMinForSelectedProp(); renderGlobalLos(); renderCalendar(); renderSeasonLegend(); };
+loadRules = async function () {
+  await origLoadRules();
+  renderSeasons();
+  updateBaseMinForSelectedProp();
+  renderGlobalLos();
+  renderCalendar();
+  renderSeasonLegend();
+};

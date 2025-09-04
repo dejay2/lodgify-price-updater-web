@@ -4,13 +4,14 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import bodyParser from 'body-parser';
 
-import {
-  fetchProperties,
-  postRates,
-} from './src/lodgify.js';
+import { fetchProperties, postRates } from './src/lodgify.js';
 import { runUpdate } from './src/logic.js';
 import { loadRules, saveRules } from './src/rules.js';
-import { fetchUpcomingBookingsPage, fetchAllBookingsPage, fetchUpcomingBookingsUpdatedSincePage } from './src/lodgify.js';
+import {
+  fetchUpcomingBookingsPage,
+  fetchAllBookingsPage,
+  fetchUpcomingBookingsUpdatedSincePage,
+} from './src/lodgify.js';
 import fs from 'fs/promises';
 // Baseline/calendar editing removed: rules-only mode
 
@@ -52,11 +53,20 @@ app.post('/api/run-update', async (req, res) => {
     if (!apiKey) return res.status(400).json({ error: 'Missing Lodgify API key' });
 
     // Always compute date range as today -> 18 months ahead (exclusive end)
-    const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const fmt = (d) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     const today = new Date();
     const startLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const endExclusive = new Date(startLocal.getFullYear(), startLocal.getMonth() + 18, startLocal.getDate());
-    const endLocal = new Date(endExclusive.getFullYear(), endExclusive.getMonth(), endExclusive.getDate() - 1);
+    const endExclusive = new Date(
+      startLocal.getFullYear(),
+      startLocal.getMonth() + 18,
+      startLocal.getDate()
+    );
+    const endLocal = new Date(
+      endExclusive.getFullYear(),
+      endExclusive.getMonth(),
+      endExclusive.getDate() - 1
+    );
 
     const settings = {
       windowDays: Number(req.body.windowDays ?? 30),
@@ -68,7 +78,9 @@ app.post('/api/run-update', async (req, res) => {
       endDate: fmt(endLocal),
       rulesFile: req.body.rulesFile || 'price_rules.json',
       dryRun: Boolean(req.body.dryRun ?? true),
-      selectedPropertyIds: Array.isArray(req.body.selectedPropertyIds) ? req.body.selectedPropertyIds : [],
+      selectedPropertyIds: Array.isArray(req.body.selectedPropertyIds)
+        ? req.body.selectedPropertyIds
+        : [],
     };
 
     // Basic validation before heavy lifting
@@ -83,7 +95,8 @@ app.post('/api/run-update', async (req, res) => {
     if (eDate < sDate) {
       return res.status(400).json({ error: 'endDate must be on/after startDate' });
     }
-    const monthsDiff = (eDate.getFullYear() - sDate.getFullYear()) * 12 + (eDate.getMonth() - sDate.getMonth());
+    const monthsDiff =
+      (eDate.getFullYear() - sDate.getFullYear()) * 12 + (eDate.getMonth() - sDate.getMonth());
     const tooLong = monthsDiff > 18 || (monthsDiff === 18 && eDate.getDate() >= sDate.getDate());
     if (tooLong) {
       return res.status(400).json({ error: 'Date range exceeds 18 months' });
@@ -116,7 +129,8 @@ app.post('/api/rules', async (req, res) => {
   try {
     const file = req.body.rulesFile || 'price_rules.json';
     const body = req.body || {};
-    if (!body.baseRates || !body.seasons) return res.status(400).json({ error: 'baseRates and seasons are required' });
+    if (!body.baseRates || !body.seasons)
+      return res.status(400).json({ error: 'baseRates and seasons are required' });
     await saveRules(file, {
       baseRates: body.baseRates,
       seasons: body.seasons,
@@ -142,7 +156,7 @@ app.get('/api/bookings/upcoming', async (req, res) => {
     const first = await fetchUpcomingBookingsPage(apiKey, { page: 1, size });
     const total = Number(first?.count || 0);
     const items = Array.isArray(first?.items) ? first.items.slice() : [];
-    const totalPages = total > 0 ? Math.ceil(total / size) : (items.length > 0 ? 1 : 0);
+    const totalPages = total > 0 ? Math.ceil(total / size) : items.length > 0 ? 1 : 0;
     for (let page = 2; page <= totalPages; page++) {
       const data = await fetchUpcomingBookingsPage(apiKey, { page, size });
       if (Array.isArray(data?.items) && data.items.length) items.push(...data.items);
@@ -158,7 +172,17 @@ app.get('/api/bookings/upcoming', async (req, res) => {
     await fs.writeFile(outPath, JSON.stringify(payload, null, 2), 'utf-8');
     // Also merge into persistent store (only status Booked)
     const { merged, removed, totalInStore } = await mergeIntoBookingsStore(items);
-    res.json({ ok: true, saved: outPath, count: payload.count, pages: totalPages, size, itemsSaved: items.length, mergedToStore: merged, removedFromStore: removed, storeCount: totalInStore });
+    res.json({
+      ok: true,
+      saved: outPath,
+      count: payload.count,
+      pages: totalPages,
+      size,
+      itemsSaved: items.length,
+      mergedToStore: merged,
+      removedFromStore: removed,
+      storeCount: totalInStore,
+    });
   } catch (err) {
     res.status(500).json({ error: err?.message || 'Failed to fetch upcoming bookings' });
   }
@@ -194,7 +218,7 @@ async function writeSyncState(state) {
 function fmtNowLocal() {
   const d = new Date();
   const pad = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 // Read sync state
@@ -212,27 +236,49 @@ async function runUpdatesSince({ apiKey, sinceOverride, size = 100 }) {
   const effectiveSize = Math.max(1, Math.min(200, Number(size || 50)));
   const state = await readSyncState();
   const today = new Date();
-  const sinceDefault = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')} 00:00`;
+  const sinceDefault = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')} 00:00`;
   const since = sinceOverride || state.lastSyncAt || sinceDefault;
-  const first = await fetchUpcomingBookingsUpdatedSincePage(apiKey, { page: 1, size: effectiveSize, updatedSince: since });
+  const first = await fetchUpcomingBookingsUpdatedSincePage(apiKey, {
+    page: 1,
+    size: effectiveSize,
+    updatedSince: since,
+  });
   const total = Number(first?.count || 0);
   const items = Array.isArray(first?.items) ? first.items.slice() : [];
-  const totalPages = total > 0 ? Math.ceil(total / effectiveSize) : (items.length > 0 ? 1 : 0);
+  const totalPages = total > 0 ? Math.ceil(total / effectiveSize) : items.length > 0 ? 1 : 0;
   for (let page = 2; page <= totalPages; page++) {
-    const data = await fetchUpcomingBookingsUpdatedSincePage(apiKey, { page, size: effectiveSize, updatedSince: since });
+    const data = await fetchUpcomingBookingsUpdatedSincePage(apiKey, {
+      page,
+      size: effectiveSize,
+      updatedSince: since,
+    });
     if (Array.isArray(data?.items) && data.items.length) items.push(...data.items);
   }
   const { merged, removed, totalInStore } = await mergeIntoBookingsStore(items);
   const nextSince = fmtNowLocal();
   await writeSyncState({ lastSyncAt: nextSince });
-  return { ok: true, sinceUsed: since, nextSince, fetched: items.length, mergedToStore: merged, removedFromStore: removed, storeCount: totalInStore, pages: totalPages, size: effectiveSize };
+  return {
+    ok: true,
+    sinceUsed: since,
+    nextSince,
+    fetched: items.length,
+    mergedToStore: merged,
+    removedFromStore: removed,
+    storeCount: totalInStore,
+    pages: totalPages,
+    size: effectiveSize,
+  };
 }
 
 app.get('/api/bookings/sync-updates', async (req, res) => {
   try {
     const apiKey = req.get('x-apikey') || req.query.apiKey || process.env.LODGIFY_API_KEY || '';
     if (!apiKey) return res.status(400).json({ error: 'Missing Lodgify API key' });
-    const result = await runUpdatesSince({ apiKey, sinceOverride: req.query.since, size: req.query.size });
+    const result = await runUpdatesSince({
+      apiKey,
+      sinceOverride: req.query.since,
+      size: req.query.size,
+    });
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err?.message || 'Failed to sync booking updates' });
@@ -248,7 +294,7 @@ app.get('/api/bookings/all', async (req, res) => {
     const first = await fetchAllBookingsPage(apiKey, { page: 1, size });
     const total = Number(first?.count || 0);
     const items = Array.isArray(first?.items) ? first.items.slice() : [];
-    const totalPages = total > 0 ? Math.ceil(total / size) : (items.length > 0 ? 1 : 0);
+    const totalPages = total > 0 ? Math.ceil(total / size) : items.length > 0 ? 1 : 0;
     for (let page = 2; page <= totalPages; page++) {
       const data = await fetchAllBookingsPage(apiKey, { page, size });
       if (Array.isArray(data?.items) && data.items.length) items.push(...data.items);
@@ -263,7 +309,17 @@ app.get('/api/bookings/all', async (req, res) => {
     const outPath = path.join(__dirname, 'all_bookings.json');
     await fs.writeFile(outPath, JSON.stringify(payload, null, 2), 'utf-8');
     const { merged, removed, totalInStore } = await mergeIntoBookingsStore(items);
-    res.json({ ok: true, saved: outPath, count: payload.count, pages: totalPages, size, itemsSaved: items.length, mergedToStore: merged, removedFromStore: removed, storeCount: totalInStore });
+    res.json({
+      ok: true,
+      saved: outPath,
+      count: payload.count,
+      pages: totalPages,
+      size,
+      itemsSaved: items.length,
+      mergedToStore: merged,
+      removedFromStore: removed,
+      storeCount: totalInStore,
+    });
   } catch (err) {
     res.status(500).json({ error: err?.message || 'Failed to fetch all bookings' });
   }
@@ -283,23 +339,41 @@ async function writeBookingsStore(store) {
   const p = path.join(__dirname, 'bookings_store.json');
   await fs.writeFile(p, JSON.stringify(store, null, 2), 'utf-8');
 }
-function normDate(s) { return (typeof s === 'string' && s.length >= 10) ? s.slice(0,10) : null; }
-function normNumber(v) { const n = Number(v); return isFinite(n) ? n : null; }
-function statusIsBooked(s) { return String(s||'').toLowerCase() === 'booked'; }
-function pickSource(b) { return b?.source ?? b?.channelName ?? b?.channel ?? null; }
+function normDate(s) {
+  return typeof s === 'string' && s.length >= 10 ? s.slice(0, 10) : null;
+}
+function normNumber(v) {
+  const n = Number(v);
+  return isFinite(n) ? n : null;
+}
+function statusIsBooked(s) {
+  return String(s || '').toLowerCase() === 'booked';
+}
+function pickSource(b) {
+  return b?.source ?? b?.channelName ?? b?.channel ?? null;
+}
 function toRecord(b) {
   return {
     id: normNumber(b?.id),
-    property_id: normNumber(b?.property_id ?? b?.propertyId ?? b?.houseId ?? b?.accommodationId ?? b?.property?.id ?? b?.house?.id),
+    property_id: normNumber(
+      b?.property_id ??
+        b?.propertyId ??
+        b?.houseId ??
+        b?.accommodationId ??
+        b?.property?.id ??
+        b?.house?.id
+    ),
     arrival: normDate(b?.arrival ?? b?.arrivalDate ?? b?.checkIn ?? b?.checkInDate ?? b?.startDate),
-    departure: normDate(b?.departure ?? b?.departureDate ?? b?.checkOut ?? b?.checkOutDate ?? b?.endDate),
+    departure: normDate(
+      b?.departure ?? b?.departureDate ?? b?.checkOut ?? b?.checkOutDate ?? b?.endDate
+    ),
     status: b?.status ?? b?.bookingStatus ?? null,
     source: pickSource(b),
   };
 }
 async function mergeIntoBookingsStore(items) {
   const store = await readBookingsStore();
-  const byId = new Map(store.items.map(it => [it.id, it]));
+  const byId = new Map(store.items.map((it) => [it.id, it]));
   let merged = 0;
   let removed = 0;
   for (const b of Array.isArray(items) ? items : []) {
@@ -307,7 +381,10 @@ async function mergeIntoBookingsStore(items) {
     const isBooked = statusIsBooked(b?.status ?? b?.bookingStatus);
     if (!isFinite(id)) continue;
     if (!isBooked) {
-      if (byId.has(id)) { byId.delete(id); removed++; }
+      if (byId.has(id)) {
+        byId.delete(id);
+        removed++;
+      }
       continue;
     }
     const rec = toRecord(b);
@@ -330,9 +407,13 @@ async function mergeIntoBookingsStore(items) {
 // Merge arbitrary posted bookings (e.g., full historical dump) into store
 app.post('/api/bookings/merge', async (req, res) => {
   try {
-    const items = Array.isArray(req.body?.items) ? req.body.items : (Array.isArray(req.body) ? req.body : []);
-  const { merged, removed, totalInStore } = await mergeIntoBookingsStore(items);
-  res.json({ ok: true, merged, removed, totalInStore });
+    const items = Array.isArray(req.body?.items)
+      ? req.body.items
+      : Array.isArray(req.body)
+        ? req.body
+        : [];
+    const { merged, removed, totalInStore } = await mergeIntoBookingsStore(items);
+    res.json({ ok: true, merged, removed, totalInStore });
   } catch (err) {
     res.status(500).json({ error: err?.message || 'Failed to merge bookings' });
   }
@@ -359,10 +440,17 @@ app.listen(PORT, () => {
     const intervalMs = AUTO_SYNC_MINUTES * 60 * 1000;
     let running = false;
     const kick = async () => {
-      if (running) return; running = true;
+      if (running) return;
+      running = true;
       try {
-        const r = await runUpdatesSince({ apiKey: process.env.LODGIFY_API_KEY, sinceOverride: null, size: 100 });
-        console.log(`[auto-sync] ${new Date().toISOString()} since='${r.sinceUsed}' fetched=${r.fetched} merged=${r.mergedToStore} removed=${r.removedFromStore} store=${r.storeCount} next='${r.nextSince}'`);
+        const r = await runUpdatesSince({
+          apiKey: process.env.LODGIFY_API_KEY,
+          sinceOverride: null,
+          size: 100,
+        });
+        console.log(
+          `[auto-sync] ${new Date().toISOString()} since='${r.sinceUsed}' fetched=${r.fetched} merged=${r.mergedToStore} removed=${r.removedFromStore} store=${r.storeCount} next='${r.nextSince}'`
+        );
       } catch (e) {
         console.error('[auto-sync] failed:', e?.message || e);
       } finally {

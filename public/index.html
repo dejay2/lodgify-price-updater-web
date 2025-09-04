@@ -21,19 +21,29 @@
       <section class="card page" data-page="settings">
         <h2>Settings</h2>
         <div class="grid grid-4">
-          <label>API Key<input id="apiKey" type="password" placeholder="Leave blank to use .env" /></label>
+          <label
+            >API Key<input id="apiKey" type="password" placeholder="Leave blank to use .env"
+          /></label>
           <label>Rules File<input id="rulesFile" type="text" value="price_rules.json" /></label>
           <label>Override Color<input id="overrideColor" type="color" value="#ffd1dc" /></label>
-          <div class="actions" style="align-self:end"><button id="loadProps">Load Properties</button></div>
+          <div class="actions" style="align-self: end">
+            <button id="loadProps">Load Properties</button>
+          </div>
         </div>
       </section>
 
       <section class="card page" data-page="discounts">
         <h2>Discounts</h2>
         <div class="grid grid-4">
-          <label>Window Days<input id="windowDays" type="number" value="30" min="0" max="365" /></label>
-          <label>Start Discount %<input id="startDiscountPct" type="number" value="30" step="0.5" /></label>
-          <label>End Discount %<input id="endDiscountPct" type="number" value="1" step="0.5" /></label>
+          <label
+            >Window Days<input id="windowDays" type="number" value="30" min="0" max="365"
+          /></label>
+          <label
+            >Start Discount %<input id="startDiscountPct" type="number" value="30" step="0.5"
+          /></label>
+          <label
+            >End Discount %<input id="endDiscountPct" type="number" value="1" step="0.5"
+          /></label>
           <label>Minimum Price<input id="minPrice" type="number" value="0" step="1" /></label>
         </div>
       </section>
@@ -51,7 +61,9 @@
           <label>Min Rate (£)<input id="minRate" type="number" step="1" /></label>
           <label>Weekend Rate %<input id="weekendRate" type="number" step="0.5" value="0" /></label>
           <label>Additional Guest £<input id="ppag" type="number" step="1" value="0" /></label>
-          <label>Additional Starts From<input id="addlFrom" type="number" step="1" value="0" /></label>
+          <label
+            >Additional Starts From<input id="addlFrom" type="number" step="1" value="0"
+          /></label>
         </div>
         <div class="actions">
           <button id="loadRules">Load Rules</button>
@@ -119,11 +131,15 @@
           <button id="importAllBookings">Import All Bookings</button>
           <button id="syncUpdates">Sync Updates (since last run)</button>
         </div>
-        <div class="grid"><label>Last Sync<input id="lastSyncAt" type="text" disabled placeholder="not yet synced" /></label></div>
+        <div class="grid">
+          <label
+            >Last Sync<input id="lastSyncAt" type="text" disabled placeholder="not yet synced"
+          /></label>
+        </div>
         <pre id="log" class="log"></pre>
       </section>
-  </main>
-  <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
-  <script src="/app.js" type="module"></script>
- </body>
- </html>
+    </main>
+    <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

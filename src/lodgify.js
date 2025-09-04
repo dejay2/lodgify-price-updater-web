@@ -79,7 +79,10 @@ export async function fetchAllBookingsPage(apiKey, { page = 1, size = 50 }) {
 }
 
 // Fetch a page of Upcoming bookings updated since a timestamp (YYYY-MM-DD HH:mm)
-export async function fetchUpcomingBookingsUpdatedSincePage(apiKey, { page = 1, size = 50, updatedSince }) {
+export async function fetchUpcomingBookingsUpdatedSincePage(
+  apiKey,
+  { page = 1, size = 50, updatedSince }
+) {
   const c = client(apiKey);
   const params = {
     page,

@@ -49,13 +49,15 @@ function normalizeRules(r, opts = {}) {
       rec.additional_guests_starts_from ?? rec.addl_from ?? rec.additional_guests_start ?? 0
     );
     // Normalize LOS rules array
-    let los = Array.isArray(rec.los) ? rec.los.map(x => ({
-      name: x.name || '',
-      min_days: x.min_days != null ? Number(x.min_days) : (x.min ?? 1),
-      max_days: x.max_days != null ? Number(x.max_days) : (x.max ?? null),
-      percent: Number(x.percent || 0), // discount percent
-      color: typeof x.color === 'string' ? x.color : '',
-    })) : [];
+    let los = Array.isArray(rec.los)
+      ? rec.los.map((x) => ({
+          name: x.name || '',
+          min_days: x.min_days != null ? Number(x.min_days) : (x.min ?? 1),
+          max_days: x.max_days != null ? Number(x.max_days) : (x.max ?? null),
+          percent: Number(x.percent || 0), // discount percent
+          color: typeof x.color === 'string' ? x.color : '',
+        }))
+      : [];
     // sort by min_days
     los.sort((a, b) => (a.min_days ?? 0) - (b.min_days ?? 0));
     // Validate and ensure no overlaps; fix obvious issues
@@ -63,14 +65,22 @@ function normalizeRules(r, opts = {}) {
     for (const x of los) {
       const minD = Math.max(1, Number.isFinite(x.min_days) ? x.min_days : 1);
       const maxD = x.max_days == null ? null : Math.max(minD, Number(x.max_days));
-      const item = { name: x.name || '', min_days: minD, max_days: maxD, percent: Number(x.percent || 0), color: typeof x.color === 'string' ? x.color : '' };
+      const item = {
+        name: x.name || '',
+        min_days: minD,
+        max_days: maxD,
+        percent: Number(x.percent || 0),
+        color: typeof x.color === 'string' ? x.color : '',
+      };
       if (cleaned.length) {
         const prev = cleaned[cleaned.length - 1];
         const prevMax = prev.max_days;
         // Disallow overlaps: current min must be greater than previous max (if prev max exists)
         if (prevMax == null || minD <= prevMax) {
           if (opts.validate) {
-            throw new Error(`LOS overlap for property ${pid}: ${prev.min_days}-${prev.max_days ?? '∞'} vs ${minD}-${maxD ?? '∞'}`);
+            throw new Error(
+              `LOS overlap for property ${pid}: ${prev.min_days}-${prev.max_days ?? '∞'} vs ${minD}-${maxD ?? '∞'}`
+            );
           } else {
             continue; // skip invalid overlap silently when not validating
           }
@@ -82,33 +92,45 @@ function normalizeRules(r, opts = {}) {
     rec.los = los;
     baseRates[pid] = rec;
   }
-  const seasons = Array.isArray(raw.seasons) ? raw.seasons.map(s => ({
-    name: s.name || '',
-    start: s.start, // YYYY-MM-DD
-    end: s.end,     // YYYY-MM-DD
-    percent: Number(s.percent || 0),
-    color: typeof s.color === 'string' ? s.color : '',
-  })) : [];
+  const seasons = Array.isArray(raw.seasons)
+    ? raw.seasons.map((s) => ({
+        name: s.name || '',
+        start: s.start, // YYYY-MM-DD
+        end: s.end, // YYYY-MM-DD
+        percent: Number(s.percent || 0),
+        color: typeof s.color === 'string' ? s.color : '',
+      }))
+    : [];
   // Global LOS (optional). If present, applies to all properties.
-  let global_los = Array.isArray(raw.global_los) ? raw.global_los.map(x => ({
-    name: x.name || '',
-    min_days: x.min_days != null ? Number(x.min_days) : (x.min ?? 1),
-    max_days: x.max_days != null ? Number(x.max_days) : (x.max ?? null),
-    percent: Number(x.percent || 0),
-    color: typeof x.color === 'string' ? x.color : '',
-  })) : [];
+  let global_los = Array.isArray(raw.global_los)
+    ? raw.global_los.map((x) => ({
+        name: x.name || '',
+        min_days: x.min_days != null ? Number(x.min_days) : (x.min ?? 1),
+        max_days: x.max_days != null ? Number(x.max_days) : (x.max ?? null),
+        percent: Number(x.percent || 0),
+        color: typeof x.color === 'string' ? x.color : '',
+      }))
+    : [];
   global_los.sort((a, b) => (a.min_days ?? 0) - (b.min_days ?? 0));
   const cleanedGlobal = [];
   for (const x of global_los) {
     const minD = Math.max(1, Number.isFinite(x.min_days) ? x.min_days : 1);
     const maxD = x.max_days == null ? null : Math.max(minD, Number(x.max_days));
-    const item = { name: x.name || '', min_days: minD, max_days: maxD, percent: Number(x.percent || 0), color: typeof x.color === 'string' ? x.color : '' };
+    const item = {
+      name: x.name || '',
+      min_days: minD,
+      max_days: maxD,
+      percent: Number(x.percent || 0),
+      color: typeof x.color === 'string' ? x.color : '',
+    };
     if (cleanedGlobal.length) {
       const prev = cleanedGlobal[cleanedGlobal.length - 1];
       const prevMax = prev.max_days;
       if (prevMax == null || minD <= prevMax) {
         if (opts.validate) {
-          throw new Error(`Global LOS overlap: ${prev.min_days}-${prev.max_days ?? '∞'} vs ${minD}-${maxD ?? '∞'}`);
+          throw new Error(
+            `Global LOS overlap: ${prev.min_days}-${prev.max_days ?? '∞'} vs ${minD}-${maxD ?? '∞'}`
+          );
         } else {
           continue;
         }
@@ -122,16 +144,19 @@ function normalizeRules(r, opts = {}) {
   if (raw.overrides && typeof raw.overrides === 'object') {
     for (const pid of Object.keys(raw.overrides)) {
       const list = Array.isArray(raw.overrides[pid]) ? raw.overrides[pid] : [];
-      overrides[pid] = list.map(o => ({
-        date: o.date,
-        price: Number(o.price || 0),
-        min_stay: o.min_stay != null ? Number(o.min_stay) : null,
-        max_stay: o.max_stay != null ? Number(o.max_stay) : null,
-      })).filter(o => typeof o.date === 'string' && o.date.length === 10 && o.price > 0);
+      overrides[pid] = list
+        .map((o) => ({
+          date: o.date,
+          price: Number(o.price || 0),
+          min_stay: o.min_stay != null ? Number(o.min_stay) : null,
+          max_stay: o.max_stay != null ? Number(o.max_stay) : null,
+        }))
+        .filter((o) => typeof o.date === 'string' && o.date.length === 10 && o.price > 0);
     }
   }
   const settings = {
-    override_color: typeof raw.settings?.override_color === 'string' ? raw.settings.override_color : '#ffd1dc',
+    override_color:
+      typeof raw.settings?.override_color === 'string' ? raw.settings.override_color : '#ffd1dc',
   };
   return { baseRates, seasons, overrides, settings, global_los };
 }
@@ -157,7 +182,15 @@ export function computeBaseForDate({ date, base, seasons, discountPct = 0 }) {
   return price;
 }
 
-export function computeDiscountPct({ date, today = new Date(), windowDays = 30, startDiscountPct = 0.3, endDiscountPct = 0.01, startDate, endDate }) {
+export function computeDiscountPct({
+  date,
+  today = new Date(),
+  windowDays = 30,
+  startDiscountPct = 0.3,
+  endDiscountPct = 0.01,
+  startDate,
+  endDate,
+}) {
   const d = new Date(date + 'T00:00:00');
   const t0 = new Date(today.toDateString());
   const daysUntil = Math.floor((d - t0) / 86400000);
@@ -189,9 +222,12 @@ export function buildRatesFromRules({ propId, roomId, startDate, endDate, rules,
     price_per_additional_guest: Number(baseCfg.price_per_additional_guest || 0),
     additional_guests_starts_from: Number(baseCfg.additional_guests_starts_from || 0),
   });
-  let losRules = Array.isArray(rules.global_los) && rules.global_los.length
-    ? rules.global_los.slice()
-    : (Array.isArray(baseCfg.los) ? baseCfg.los.slice() : []);
+  let losRules =
+    Array.isArray(rules.global_los) && rules.global_los.length
+      ? rules.global_los.slice()
+      : Array.isArray(baseCfg.los)
+        ? baseCfg.los.slice()
+        : [];
   // Ensure non-overlapping, sorted tiers (defensive – saveRules also validates)
   losRules.sort((a, b) => (a.min_days ?? 0) - (b.min_days ?? 0));
   for (let i = 1; i < losRules.length; i++) {
@@ -203,7 +239,8 @@ export function buildRatesFromRules({ propId, roomId, startDate, endDate, rules,
   }
 
   // helpers (local date handling; avoid UTC shifts)
-  const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const ymd = (d) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const nextDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
   // iterate days inclusive using local dates
   const s = new Date(startDate + 'T00:00:00');
@@ -211,8 +248,9 @@ export function buildRatesFromRules({ propId, roomId, startDate, endDate, rules,
   for (let d = new Date(s); d <= e; d = nextDay(d)) {
     const ds = ymd(d);
     // Overrides take precedence
-    const ovrList = (rules.overrides && (rules.overrides[String(propId)] || rules.overrides[propId])) || [];
-    const ovr = Array.isArray(ovrList) ? ovrList.find(o => o.date === ds) : null;
+    const ovrList =
+      (rules.overrides && (rules.overrides[String(propId)] || rules.overrides[propId])) || [];
+    const ovr = Array.isArray(ovrList) ? ovrList.find((o) => o.date === ds) : null;
     if (ovr) {
       const de = ymd(nextDay(d));
       out.push({
@@ -227,14 +265,23 @@ export function buildRatesFromRules({ propId, roomId, startDate, endDate, rules,
       });
       continue;
     }
-    const discountPct = computeDiscountPct({ date: ds, windowDays: settings.windowDays, startDiscountPct: settings.startDiscountPct, endDiscountPct: settings.endDiscountPct });
+    const discountPct = computeDiscountPct({
+      date: ds,
+      windowDays: settings.windowDays,
+      startDiscountPct: settings.startDiscountPct,
+      endDiscountPct: settings.endDiscountPct,
+    });
     const baseAdj = computeBaseForDate({ date: ds, base, seasons: rules.seasons, discountPct });
     if (baseAdj == null) continue;
     const minClamp = Math.max(minRate || 0, settings.minPrice || 0);
 
     const tiers = [];
     for (const r of losRules) {
-      tiers.push({ min_stay: r.min_days ?? 1, max_stay: r.max_days ?? null, percent: -Math.abs(r.percent) });
+      tiers.push({
+        min_stay: r.min_days ?? 1,
+        max_stay: r.max_days ?? null,
+        percent: -Math.abs(r.percent),
+      });
     }
     // Build rate entries per tier
     const de = ymd(nextDay(d));
