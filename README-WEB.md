@@ -62,7 +62,7 @@ Files created (ignored by git)
 
 - `upcoming_bookings.json`, `all_bookings.json`: raw snapshots of fetches.
 - `bookings_store.json`: persistent, deduped store of “Booked” records only.
-- `bookings_sync.json`: tracks the last successful updatedSince timestamp in UTC (with seconds).
+- `data/app_state.json`: consolidated runtime state in UTC with seconds, e.g. `{ "activeRulesFile": "price_rules.json", "lastSyncAtUtc": "YYYY-MM-DD HH:mm:ss", "version": 1 }`.
 
 Tabs overview
 
@@ -79,7 +79,7 @@ Endpoints (server)
 - `GET /api/bookings/upcoming` — fetch upcoming bookings (paginated) and merge Booked into store.
 - `GET /api/bookings/all` — fetch all bookings (paginated) and merge Booked into store.
 - `GET /api/bookings/store` — return the persistent store `{ updatedAt, count, items }`.
-- `GET /api/bookings/sync-state` — return `{ lastSyncAt }` (UTC, with seconds).
+- `GET /api/bookings/sync-state` — return `{ lastSyncAt }` (UTC, with seconds). Backed by `data/app_state.json`.
 - `GET /api/bookings/sync-updates` — incremental sync with optional `since=YYYY-MM-DD HH:mm[:ss]` (UTC) and `size=N`. Uses `stayFilter=All` and applies a 5‑minute overlap.
 - `POST /api/bookings/merge` — merge posted payload (array or `{items:[...]}`), storing Booked only and dropping non‑Booked entries that already exist.
 

@@ -24,25 +24,69 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 const AUTO_SYNC_MINUTES = Number(process.env.BOOKING_SYNC_INTERVAL_MINUTES || 0) || 0; // 0 disables
-// Track the last rules file saved by the UI so the jitter scheduler knows which file to read
-const ACTIVE_RULES_FILE_META = path.join(process.cwd(), 'active_rules_path.json');
-async function getActiveRulesFile() {
+// Consolidated app state (active rules path, last sync, etc.)
+const APP_STATE_DIR = path.join(process.cwd(), 'data');
+const APP_STATE_PATH = path.join(APP_STATE_DIR, 'app_state.json');
+
+async function ensureDir(p) {
   try {
-    const txt = await fs.readFile(ACTIVE_RULES_FILE_META, 'utf-8');
-    const j = JSON.parse(txt);
-    return j?.rulesFile || 'price_rules.json';
+    await fs.mkdir(p, { recursive: true });
+  } catch {}
+}
+async function readJsonSafe(p) {
+  try {
+    const txt = await fs.readFile(p, 'utf-8');
+    return JSON.parse(txt);
   } catch {
-    return 'price_rules.json';
+    return null;
   }
 }
+async function writeJsonAtomic(p, obj) {
+  await ensureDir(path.dirname(p));
+  const tmp = p + '.tmp';
+  await fs.writeFile(tmp, JSON.stringify(obj, null, 2), 'utf-8');
+  await fs.rename(tmp, p);
+}
+function nowIsoUtc() {
+  return new Date().toISOString();
+}
+async function readLegacyActiveRules() {
+  const legacyPath = path.join(process.cwd(), 'active_rules_path.json');
+  const j = await readJsonSafe(legacyPath);
+  if (j && typeof j.rulesFile === 'string') return j.rulesFile;
+  return null;
+}
+async function readLegacySync() {
+  const legacyPath = path.join(__dirname, 'bookings_sync.json');
+  const j = await readJsonSafe(legacyPath);
+  if (j && typeof j.lastSyncAt === 'string' && j.lastSyncAt) return j.lastSyncAt;
+  return null;
+}
+async function readAppState() {
+  const current = await readJsonSafe(APP_STATE_PATH);
+  if (current && typeof current === 'object') return current;
+  // Build from defaults + legacy if present
+  const state = {
+    version: 1,
+    updatedAtUtc: nowIsoUtc(),
+    activeRulesFile: (await readLegacyActiveRules()) || 'price_rules.json',
+    lastSyncAtUtc: (await readLegacySync()) || null,
+  };
+  await writeJsonAtomic(APP_STATE_PATH, state);
+  return state;
+}
+async function writeAppState(updates) {
+  const cur = (await readAppState()) || {};
+  const next = { ...cur, ...updates, updatedAtUtc: nowIsoUtc() };
+  await writeJsonAtomic(APP_STATE_PATH, next);
+  return next;
+}
+async function getActiveRulesFile() {
+  const s = await readAppState();
+  return s?.activeRulesFile || 'price_rules.json';
+}
 async function setActiveRulesFile(file) {
-  try {
-    await fs.writeFile(
-      ACTIVE_RULES_FILE_META,
-      JSON.stringify({ rulesFile: file }, null, 2),
-      'utf-8'
-    );
-  } catch {}
+  await writeAppState({ activeRulesFile: file || 'price_rules.json' });
 }
 
 app.use(bodyParser.json({ limit: '1mb' }));
@@ -227,17 +271,11 @@ app.get('/api/bookings/local', async (_req, res) => {
 
 // --- Sync state helpers ---
 async function readSyncState() {
-  try {
-    const p = path.join(__dirname, 'bookings_sync.json');
-    const txt = await fs.readFile(p, 'utf-8');
-    return JSON.parse(txt);
-  } catch {
-    return { lastSyncAt: null };
-  }
+  const s = await readAppState();
+  return { lastSyncAt: s?.lastSyncAtUtc || null };
 }
 async function writeSyncState(state) {
-  const p = path.join(__dirname, 'bookings_sync.json');
-  await fs.writeFile(p, JSON.stringify(state, null, 2), 'utf-8');
+  await writeAppState({ lastSyncAtUtc: state?.lastSyncAt || null });
 }
 // Format a UTC timestamp as 'YYYY-MM-DD HH:mm:ss' (UTC)
 function fmtNowUtc() {
@@ -279,7 +317,9 @@ async function runUpdatesSince({ apiKey, sinceOverride, size = 100 }) {
   const state = await readSyncState();
   // Default to 00:00:00 UTC today if no previous sync
   const now = new Date();
-  const midnightUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
+  const midnightUtc = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0)
+  );
   const sinceDefault = fmtUtcYmdHm(midnightUtc);
   const sinceBase = sinceOverride || state.lastSyncAt || sinceDefault;
   // Apply small overlap and ensure UTC formatting to avoid timezone gaps

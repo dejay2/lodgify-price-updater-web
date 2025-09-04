@@ -9,6 +9,7 @@ A lightweight web app to compute Lodgify day rates from a base/min per property 
   - Calendar booking overlays from Lodgify with color coding (no PII).
   - Import buttons for Upcoming and All bookings, plus incremental sync via updatedSince (UTC with seconds, `stayFilter=All`, 5‑minute overlap; optional auto‑sync via `BOOKING_SYNC_INTERVAL_MINUTES`).
   - Persistent `bookings_store.json` (Booked‑only) with automatic removal on cancel.
+  - Consolidated runtime state in `data/app_state.json` (UTC with seconds) for `activeRulesFile` and `lastSyncAt`.
   - UI refactor: Settings (API key, rules file, override color), Discounts (window/start/end/min), Global LOS tab, Calendar as default.
   - Payload includes a required default `{ is_default: true }` entry to satisfy Lodgify API.
 - License: MIT (see `LICENSE`).

@@ -4,3 +4,7 @@ dist/
 build/
 coverage/
 
+data/
+active_rules_path.json
+bookings_sync.json
+price_rules.json
