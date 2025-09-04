@@ -25,6 +25,7 @@ bookings_store.json
 all_bookings.json
 bookings_sync.json
 *.log
+AGENTS.md
 
 # OS / editor
 .DS_Store
