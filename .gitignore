@@ -25,7 +25,6 @@ bookings_store.json
 all_bookings.json
 bookings_sync.json
 *.log
-AGENTS.md
 data/
 
 # OS / editor
