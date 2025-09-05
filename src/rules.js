@@ -185,15 +185,13 @@ function normalizeRules(r, opts = {}) {
     booking_addon_fee: Math.max(0, Number(raw.settings?.booking_addon_fee ?? 0)),
     oh_addon_fee: Math.max(0, Number(raw.settings?.oh_addon_fee ?? 0)),
     // Discounts (persisted)
-    window_days: Math.max(
-      0,
-      Number(
-        raw.settings?.window_days ?? raw.settings?.windowDays ?? 30
-      )
-    ),
+    window_days: Math.max(0, Number(raw.settings?.window_days ?? raw.settings?.windowDays ?? 30)),
     start_discount_pct: Math.max(
       0,
-      Math.min(100, Number(raw.settings?.start_discount_pct ?? raw.settings?.startDiscountPct ?? 30))
+      Math.min(
+        100,
+        Number(raw.settings?.start_discount_pct ?? raw.settings?.startDiscountPct ?? 30)
+      )
     ),
     end_discount_pct: Math.max(
       0,
@@ -202,12 +200,28 @@ function normalizeRules(r, opts = {}) {
     min_price: Math.max(0, Number(raw.settings?.min_price ?? raw.settings?.minPrice ?? 0)),
     // Fee fold-in (optional)
     fold_fees_into_nightly: Boolean(raw.settings?.fold_fees_into_nightly || false),
-    fold_include_cleaning: raw.settings?.fold_include_cleaning != null
-      ? Boolean(raw.settings.fold_include_cleaning)
-      : true,
-    fold_include_service: raw.settings?.fold_include_service != null
-      ? Boolean(raw.settings.fold_include_service)
-      : true,
+    fold_include_cleaning:
+      raw.settings?.fold_include_cleaning != null
+        ? Boolean(raw.settings.fold_include_cleaning)
+        : true,
+    fold_include_service:
+      raw.settings?.fold_include_service != null
+        ? Boolean(raw.settings.fold_include_service)
+        : true,
+    // Historic lead-in price (optional): when enabled, append a one-day rate row
+    // for yesterday at a fixed price to influence channel "from" price displays.
+    historic_lead_in_enabled: Boolean(
+      raw.settings?.historic_lead_in_enabled || raw.settings?.historicLeadInEnabled || false
+    ),
+    historic_lead_in_price: Math.max(
+      0,
+      Number(raw.settings?.historic_lead_in_price ?? raw.settings?.historicLeadInPrice ?? 0)
+    ),
+    // Days back to apply the lead-in (default 1 = yesterday). Kept internal (no UI yet).
+    historic_lead_in_days_back: Math.max(
+      1,
+      Number(raw.settings?.historic_lead_in_days_back ?? raw.settings?.historicLeadInDaysBack ?? 1)
+    ),
   };
   return { baseRates, seasons, overrides, settings, global_los };
 }
@@ -276,10 +290,14 @@ export function buildRatesFromRules({
   const foldEnabled =
     (settings && settings.fold_fees_into_nightly) ?? ruleSettings.fold_fees_into_nightly ?? false;
   const foldIncludeCleaning =
-    (settings && settings.fold_include_cleaning) ??
-    (ruleSettings.fold_include_cleaning ?? true);
+    (settings && settings.fold_include_cleaning) ?? ruleSettings.fold_include_cleaning ?? true;
   const foldIncludeService =
-    (settings && settings.fold_include_service) ?? (ruleSettings.fold_include_service ?? true);
+    (settings && settings.fold_include_service) ?? ruleSettings.fold_include_service ?? true;
+  // Precompute helper fns before output ordering
+  const ymd = (d) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const nextDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+
   // Default catch-all rate must be first. Lodgify requires an is_default=true
   // entry without dates. This is used for any dates not covered by specific
   // day entries. Price should be the Base Rate; min/max stay 2..30.
@@ -291,7 +309,8 @@ export function buildRatesFromRules({
     const defaultNights = 2;
     // If folding fees into nightly, include fee share; profit clamp always uses both fees
     if (foldEnabled) {
-      const feesTotal = (foldIncludeCleaning ? Number(baseCfg.cleaning_fee || 0) : 0) +
+      const feesTotal =
+        (foldIncludeCleaning ? Number(baseCfg.cleaning_fee || 0) : 0) +
         (foldIncludeService ? Number(baseCfg.service_fee || 0) : 0);
       defaultPrice = Math.floor(base + (feesTotal > 0 ? feesTotal / defaultNights : 0));
     }
@@ -301,7 +320,8 @@ export function buildRatesFromRules({
       Number(settings?.minPrice || 0) || 0,
       minProfitPct > 0 && profitFeesTotal > 0
         ? Math.floor(
-            (profitFeesTotal / defaultNights) * (foldEnabled ? 1 + minProfitPct / 100 : minProfitPct / 100)
+            (profitFeesTotal / defaultNights) *
+              (foldEnabled ? 1 + minProfitPct / 100 : minProfitPct / 100)
           )
         : 0
     );
@@ -315,6 +335,39 @@ export function buildRatesFromRules({
       additional_guests_starts_from: Number(baseCfg.additional_guests_starts_from || 0),
     });
   }
+
+  // Historic lead-in price: immediately follow the default row so payload stays in date order
+  try {
+    const leadInEnabled =
+      (settings && (settings.historicLeadInEnabled ?? settings.historic_lead_in_enabled)) || false;
+    const leadInPrice = Number(
+      (settings && (settings.historicLeadInPrice ?? settings.historic_lead_in_price)) || 0
+    );
+    const daysBack = Math.max(
+      1,
+      Number(
+        (settings && (settings.historicLeadInDaysBack ?? settings.historic_lead_in_days_back)) || 1
+      )
+    );
+    if (leadInEnabled && isFinite(leadInPrice) && leadInPrice > 0) {
+      const nowLocal = new Date();
+      const today = new Date(nowLocal.getFullYear(), nowLocal.getMonth(), nowLocal.getDate());
+      const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - daysBack);
+      const end = nextDay(start);
+      const ds = ymd(start);
+      const de = ymd(end);
+      out.push({
+        is_default: false,
+        start_date: ds,
+        end_date: de,
+        price_per_day: Math.floor(leadInPrice),
+        min_stay: 2,
+        max_stay: 2,
+        price_per_additional_guest: Number(baseCfg.price_per_additional_guest || 0),
+        additional_guests_starts_from: Number(baseCfg.additional_guests_starts_from || 0),
+      });
+    }
+  } catch {}
   let losRules =
     Array.isArray(rules.global_los) && rules.global_los.length
       ? rules.global_los.slice()
@@ -331,10 +384,6 @@ export function buildRatesFromRules({
     }
   }
 
-  // helpers (local date handling; avoid UTC shifts)
-  const ymd = (d) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  const nextDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
   // iterate days inclusive using local dates
   const s = new Date(startDate + 'T00:00:00');
   const e = new Date(endDate + 'T00:00:00');
@@ -399,7 +448,8 @@ export function buildRatesFromRules({
       }
       // Optional: fold cleaning/service fees into nightly based on LOS min_stay
       if (foldEnabled) {
-        const feesTotal = (foldIncludeCleaning ? Number(baseCfg.cleaning_fee || 0) : 0) +
+        const feesTotal =
+          (foldIncludeCleaning ? Number(baseCfg.cleaning_fee || 0) : 0) +
           (foldIncludeService ? Number(baseCfg.service_fee || 0) : 0);
         const nightsRef = Math.max(1, Number(t.min_stay ?? 1));
         if (feesTotal > 0 && nightsRef > 0) {
@@ -413,7 +463,8 @@ export function buildRatesFromRules({
       if (minProfitPct > 0 && profitFeesTotal > 0) {
         const nightsRef = Math.max(1, Number(t.min_stay ?? 1));
         profitMin = Math.floor(
-          (profitFeesTotal / nightsRef) * (foldEnabled ? 1 + minProfitPct / 100 : minProfitPct / 100)
+          (profitFeesTotal / nightsRef) *
+            (foldEnabled ? 1 + minProfitPct / 100 : minProfitPct / 100)
         );
       }
       const finalFloor = Math.max(minClamp || 0, profitMin || 0);

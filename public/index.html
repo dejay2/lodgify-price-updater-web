@@ -43,15 +43,27 @@
           <label
             >Booking.com Addon £<input id="bookingAddon" type="number" step="1" value="0"
           /></label>
-          <label
-            >OH/Website Addon £<input id="ohAddon" type="number" step="1" value="0"
-          /></label>
+          <label>OH/Website Addon £<input id="ohAddon" type="number" step="1" value="0" /></label>
         </div>
         <h3>Fee Fold‑In</h3>
         <div class="grid grid-4">
-          <label><input id="foldFeesEnabled" type="checkbox" /> Fold cleaning + service into nightly</label>
-          <label><input id="foldIncludeCleaning" type="checkbox" checked /> Include Cleaning Fee</label>
-          <label><input id="foldIncludeService" type="checkbox" checked /> Include Service Fee</label>
+          <label
+            ><input id="foldFeesEnabled" type="checkbox" /> Fold cleaning + service into
+            nightly</label
+          >
+          <label
+            ><input id="foldIncludeCleaning" type="checkbox" checked /> Include Cleaning Fee</label
+          >
+          <label
+            ><input id="foldIncludeService" type="checkbox" checked /> Include Service Fee</label
+          >
+        </div>
+        <h3>Lead‑In Price (Yesterday)</h3>
+        <div class="grid grid-4">
+          <label
+            ><input id="leadInEnabled" type="checkbox" /> Append yesterday at fixed price</label
+          >
+          <label>Lead‑In Price £<input id="leadInPrice" type="number" step="1" value="0" /></label>
         </div>
         <h3>Jitter (Auto Price Tweaks)</h3>
         <div class="grid grid-4">
@@ -182,6 +194,7 @@
             <label>Min Stay<input id="ovrMin" type="number" step="1" min="1" /></label>
             <label>Max Stay<input id="ovrMax" type="number" step="1" min="1" /></label>
           </div>
+          <div id="ovrLosHint" class="los-hint" aria-live="polite"></div>
           <div class="actions">
             <button id="ovrSave">Save</button>
             <button id="ovrDelete">Remove</button>

@@ -147,7 +147,10 @@ app.post('/api/run-update', async (req, res) => {
         ? req.body.selectedPropertyIds
         : [],
       // Optional fee fold-in flags passed from UI; merged with rules.settings later (undefined means: use rules)
-      fold_fees_into_nightly: Object.prototype.hasOwnProperty.call(req.body, 'fold_fees_into_nightly')
+      fold_fees_into_nightly: Object.prototype.hasOwnProperty.call(
+        req.body,
+        'fold_fees_into_nightly'
+      )
         ? Boolean(req.body.fold_fees_into_nightly)
         : undefined,
       fold_include_cleaning: Object.prototype.hasOwnProperty.call(req.body, 'fold_include_cleaning')

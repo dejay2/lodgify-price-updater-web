@@ -61,6 +61,7 @@ Domain Model (rules summary)
 - `overrides[<propertyId>][]`: exact dates with `{ date, price, min_stay?, max_stay? }`.
 - `settings`: UI + scheduler options including `override_color`, `auto_jitter_enabled`, jitter parameters, and channel fee/uplift sliders used by the calendar tooltip.
   - Optional Fee Fold‑In: `fold_fees_into_nightly` (bool), `fold_include_cleaning` (bool), `fold_include_service` (bool).
+  - Optional Lead‑In Price (Yesterday): `historic_lead_in_enabled` (bool), `historic_lead_in_price` (number). When enabled, appends a single one‑day rate row for yesterday at the fixed price in every payload, to influence channel “from” price displays. Not shown in calendar preview.
 
 Pricing Flow (high level)
 
@@ -74,9 +75,10 @@ Pricing Flow (high level)
    - Optional Fee Fold‑In: add per‑night share of Cleaning/Service by LOS min_stay.
    - Final min‑price clamp: highest of per‑property `min`, global Minimum Price (Discounts tab),
      and Profit‑based minimum computed from `(cleaning_fee + service_fee) / LOS.min_stay`:
-       - If fold‑in OFF → multiply by `(min_profit_pct / 100)` (profit only).
-       - If fold‑in ON  → multiply by `(1 + min_profit_pct / 100)` (fees + profit).
+     - If fold‑in OFF → multiply by `(min_profit_pct / 100)` (profit only).
+     - If fold‑in ON → multiply by `(1 + min_profit_pct / 100)` (fees + profit).
 3. Emit Lodgify payload rows with per‑additional‑guest pricing.
+   - If `historic_lead_in_enabled`, append a one‑day row for yesterday at `historic_lead_in_price` (min_stay=1). This is outside the normal today→+18 months loop by design and does not affect overrides.
 
 Endpoints (server)
 

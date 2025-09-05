@@ -57,6 +57,9 @@ const ohAddonInput = document.getElementById('ohAddon');
 const foldFeesEnabledInput = document.getElementById('foldFeesEnabled');
 const foldIncludeCleaningInput = document.getElementById('foldIncludeCleaning');
 const foldIncludeServiceInput = document.getElementById('foldIncludeService');
+// Lead-in price UI (yesterday)
+const leadInEnabledInput = document.getElementById('leadInEnabled');
+const leadInPriceInput = document.getElementById('leadInPrice');
 
 // Default date range: today -> 18 months ahead (server enforces; UI displays if inputs exist)
 function fmtDate(d) {
@@ -418,7 +421,7 @@ propSelectRules.addEventListener('change', () => {
   }
 });
 if (loadRulesBtn) {
-loadRulesBtn.addEventListener('click', async () => {
+  loadRulesBtn.addEventListener('click', async () => {
     try {
       await loadRules();
       showToast('Rules loaded', 'success');
@@ -440,7 +443,9 @@ saveRatesBtn.addEventListener('click', async (e) => {
     base: Number(baseRateInput.value || 0),
     min: Number(minRateInput.value || 0),
     min_profit_pct: Number(
-      typeof minProfitPctInput !== 'undefined' && minProfitPctInput ? minProfitPctInput.value || 0 : 0
+      typeof minProfitPctInput !== 'undefined' && minProfitPctInput
+        ? minProfitPctInput.value || 0
+        : 0
     ),
     weekend_pct: Number(weekendRateInput?.value || 0),
     max_discount_pct: Number(maxDiscountPctInput?.value || 0),
@@ -564,11 +569,9 @@ async function loadRules() {
   if (jitterMarkupMaxInput) jitterMarkupMaxInput.value = rulesState.settings.jitter_markup_max ?? 2;
   if (jitterSeedInput) jitterSeedInput.value = rulesState.settings.jitter_seed_salt ?? '';
   // Channel fees/uplifts → UI
-  if (airbnbUpliftInput)
-    airbnbUpliftInput.value = rulesState.settings.airbnb_uplift_pct ?? 0;
+  if (airbnbUpliftInput) airbnbUpliftInput.value = rulesState.settings.airbnb_uplift_pct ?? 0;
   if (airbnbAddonInput) airbnbAddonInput.value = rulesState.settings.airbnb_addon_fee ?? 0;
-  if (bookingUpliftInput)
-    bookingUpliftInput.value = rulesState.settings.booking_uplift_pct ?? 0;
+  if (bookingUpliftInput) bookingUpliftInput.value = rulesState.settings.booking_uplift_pct ?? 0;
   if (bookingAddonInput) bookingAddonInput.value = rulesState.settings.booking_addon_fee ?? 0;
   if (ohAddonInput) ohAddonInput.value = rulesState.settings.oh_addon_fee ?? 0;
   // Fee fold-in → UI
@@ -584,6 +587,10 @@ async function loadRules() {
       rulesState.settings.fold_include_service != null
         ? !!rulesState.settings.fold_include_service
         : true;
+  // Lead-in price → UI
+  if (leadInEnabledInput)
+    leadInEnabledInput.checked = !!rulesState.settings.historic_lead_in_enabled;
+  if (leadInPriceInput) leadInPriceInput.value = rulesState.settings.historic_lead_in_price ?? 0;
   renderSeasons();
   appReady.rules = true;
   renderOrchestrator();
@@ -631,8 +638,7 @@ function updateBaseMinForSelectedProp() {
   const rec = rulesState.baseRates[pid] || {};
   baseRateInput.value = rec.base ?? rec.baseRate ?? '';
   minRateInput.value = rec.min ?? rec.minRate ?? '';
-  if (minProfitPctInput)
-    minProfitPctInput.value = rec.min_profit_pct ?? rec.minProfitPct ?? 0;
+  if (minProfitPctInput) minProfitPctInput.value = rec.min_profit_pct ?? rec.minProfitPct ?? 0;
   if (weekendRateInput)
     weekendRateInput.value = rec.weekend_pct ?? rec.weekendPct ?? rec.weekend ?? 0;
   if (maxDiscountPctInput)
@@ -700,6 +706,11 @@ async function saveRules() {
     rulesState.settings.fold_include_cleaning = !!foldIncludeCleaningInput.checked;
   if (foldIncludeServiceInput)
     rulesState.settings.fold_include_service = !!foldIncludeServiceInput.checked;
+  // Lead-in price
+  if (leadInEnabledInput)
+    rulesState.settings.historic_lead_in_enabled = !!leadInEnabledInput.checked;
+  if (leadInPriceInput)
+    rulesState.settings.historic_lead_in_price = Math.max(0, Number(leadInPriceInput.value || 0));
   // Persist Discounts (if present) when saving settings from the Settings tab
   if (windowDaysInput)
     rulesState.settings.window_days = Math.max(0, Number(windowDaysInput.value || 0));
@@ -713,8 +724,7 @@ async function saveRules() {
       0,
       Math.min(100, Number(endDiscountPctInput.value || 0))
     );
-  if (minPriceInput)
-    rulesState.settings.min_price = Math.max(0, Number(minPriceInput.value || 0));
+  if (minPriceInput) rulesState.settings.min_price = Math.max(0, Number(minPriceInput.value || 0));
   const body = {
     rulesFile: file,
     baseRates: rulesState.baseRates,
@@ -851,6 +861,7 @@ const ovrMax = document.getElementById('ovrMax');
 const ovrSave = document.getElementById('ovrSave');
 const ovrDelete = document.getElementById('ovrDelete');
 const ovrCancel = document.getElementById('ovrCancel');
+const ovrLosHint = document.getElementById('ovrLosHint');
 
 // --- Bookings cache (for calendar display) ---
 let bookingsCache = null; // { items: [...], count, ... }
@@ -1032,7 +1043,12 @@ function getSeasonForDate(ds) {
 }
 
 // Mirror server-side discount curve for preview
-function computeDiscountPctLocal({ date, windowDays = 30, startDiscountPct = 30, endDiscountPct = 1 }) {
+function computeDiscountPctLocal({
+  date,
+  windowDays = 30,
+  startDiscountPct = 30,
+  endDiscountPct = 1,
+}) {
   try {
     const d = new Date(date + 'T00:00:00');
     const t0 = new Date(new Date().toDateString()); // local midnight today
@@ -1099,13 +1115,16 @@ function computeOneNightPrice(ds, pid) {
   else if (Array.isArray(los) && los.length) nightsRef = Math.max(1, Number(los[0].min_days || 2));
   // Optional: fold cleaning/service fees into nightly using LOS min_stay as amortization
   if (rulesState?.settings?.fold_fees_into_nightly) {
-    const includeCleaning = rulesState.settings.fold_include_cleaning != null
-      ? !!rulesState.settings.fold_include_cleaning
-      : true;
-    const includeService = rulesState.settings.fold_include_service != null
-      ? !!rulesState.settings.fold_include_service
-      : true;
-    const feesTotal = (includeCleaning ? Number(rec.cleaning_fee || 0) : 0) +
+    const includeCleaning =
+      rulesState.settings.fold_include_cleaning != null
+        ? !!rulesState.settings.fold_include_cleaning
+        : true;
+    const includeService =
+      rulesState.settings.fold_include_service != null
+        ? !!rulesState.settings.fold_include_service
+        : true;
+    const feesTotal =
+      (includeCleaning ? Number(rec.cleaning_fee || 0) : 0) +
       (includeService ? Number(rec.service_fee || 0) : 0);
     if (feesTotal > 0 && nightsRef > 0) {
       price = price + Math.floor(feesTotal / nightsRef);
@@ -1245,7 +1264,10 @@ function renderCalendar() {
               nights = Math.max(1, Math.round((d2 - a) / 86400000));
             } catch {}
             const total =
-              Number(b?.total_amount || 0) || Number(b?.amount_paid || 0) || Number(b?.subtotals_stay || 0) || 0;
+              Number(b?.total_amount || 0) ||
+              Number(b?.amount_paid || 0) ||
+              Number(b?.subtotals_stay || 0) ||
+              0;
             // Channel-specific adjustments: subtract addon fees and remove uplift
             let adj = total;
             try {
@@ -1263,7 +1285,11 @@ function renderCalendar() {
                 adj = Math.max(0, adj - add(s.booking_addon_fee));
                 const u = pct(s.booking_uplift_pct);
                 if (u > 0) adj = adj / (1 + u / 100);
-              } else if (rawSrc.includes('oh') || rawSrc.includes('manual') || rawSrc.includes('website')) {
+              } else if (
+                rawSrc.includes('oh') ||
+                rawSrc.includes('manual') ||
+                rawSrc.includes('website')
+              ) {
                 adj = Math.max(0, adj - add(s.oh_addon_fee));
               } else {
                 // For unknown channels, leave as-is
@@ -1394,6 +1420,7 @@ function openOverrideModal(ds) {
   ovrPrice.value = existing?.price ?? '';
   ovrMin.value = existing?.min_stay ?? '';
   ovrMax.value = existing?.max_stay ?? '';
+  if (ovrLosHint) ovrLosHint.textContent = '';
   overrideModal.classList.add('show');
   overrideModal.setAttribute('aria-hidden', 'false');
 
@@ -1449,6 +1476,69 @@ function openRangeOverrideModal(dateList) {
   ovrPrice.value = '';
   ovrMin.value = '';
   ovrMax.value = '';
+  // Compute and display LOS-based suggestion for this range length
+  try {
+    if (ovrLosHint) {
+      const nights = sorted.length;
+      // Prefer global LOS; fallback to per-property LOS
+      const rec = rulesState.baseRates[pid] || {};
+      const losList = (
+        Array.isArray(rulesState.global_los) && rulesState.global_los.length
+          ? rulesState.global_los
+          : Array.isArray(rec.los)
+            ? rec.los
+            : []
+      )
+        .slice()
+        .sort((a, b) => (a.min_days ?? 0) - (b.min_days ?? 0));
+      const match = losList.find(
+        (r) => (r.min_days ?? 1) <= nights && (r.max_days == null || nights <= r.max_days)
+      );
+      // Gather baseline prices for each selected date using current preview rules
+      const perDayBase = sorted
+        .map((ds) => computeOneNightPrice(ds, pid))
+        .filter((v) => typeof v === 'number' && isFinite(v) && v > 0);
+      if (perDayBase.length === 0) {
+        ovrLosHint.textContent = '';
+      } else if (match && (match.percent || match.percent === 0)) {
+        const pct = Math.abs(Number(match.percent || 0));
+        const perDayWithLos = perDayBase.map((p) => Math.floor(p * (1 - pct / 100)));
+        const sum = perDayWithLos.reduce((a, b) => a + b, 0);
+        const avg = Math.round(sum / perDayWithLos.length);
+        const mn = Math.min(...perDayWithLos);
+        const mx = Math.max(...perDayWithLos);
+        const sym = '£';
+        ovrLosHint.innerHTML = `LOS ${nights} night${nights === 1 ? '' : 's'}: -${pct}% → <strong>${sym}${avg}/night</strong> (range ${sym}${mn}–${sym}${mx}) <button type="button" id="ovrLosApply">Use ${sym}${avg}</button>`;
+        const applyBtn = document.getElementById('ovrLosApply');
+        if (applyBtn) {
+          applyBtn.onclick = () => {
+            ovrPrice.value = String(avg);
+            try {
+              ovrPrice.focus();
+            } catch {}
+          };
+        }
+      } else {
+        const sum = perDayBase.reduce((a, b) => a + b, 0);
+        const avg = Math.round(sum / perDayBase.length);
+        const mn = Math.min(...perDayBase);
+        const mx = Math.max(...perDayBase);
+        const sym = '£';
+        ovrLosHint.innerHTML = `No LOS tier for ${nights} night${nights === 1 ? '' : 's'} · Avg nightly <strong>${sym}${avg}</strong> (range ${sym}${mn}–${sym}${mx}) <button type="button" id="ovrLosApply">Use ${sym}${avg}</button>`;
+        const applyBtn = document.getElementById('ovrLosApply');
+        if (applyBtn) {
+          applyBtn.onclick = () => {
+            ovrPrice.value = String(avg);
+            try {
+              ovrPrice.focus();
+            } catch {}
+          };
+        }
+      }
+    }
+  } catch {
+    if (ovrLosHint) ovrLosHint.textContent = '';
+  }
   overrideModal.classList.add('show');
   overrideModal.setAttribute('aria-hidden', 'false');
 

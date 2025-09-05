@@ -256,6 +256,21 @@ button {
   display: flex;
 }
 
+/* LOS hint inside override modal */
+.los-hint {
+  margin-top: 8px;
+  font-size: 0.9rem;
+  color: #94a3b8; /* muted */
+}
+.los-hint strong {
+  color: #e2e8f0;
+}
+.los-hint button {
+  margin-left: 8px;
+  padding: 4px 8px;
+  font-size: 0.85rem;
+}
+
 /* Bulk tools */
 .bulk {
   display: flex;
