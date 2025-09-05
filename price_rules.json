@@ -466,7 +466,7 @@
   },
   "settings": {
     "override_color": "#e1ff00",
-    "auto_jitter_enabled": false,
+    "auto_jitter_enabled": true,
     "jitter_interval_minutes": 60,
     "jitter_lookahead_days": 30,
     "jitter_block_near_days": 2,

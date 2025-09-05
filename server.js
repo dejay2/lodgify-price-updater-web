@@ -613,9 +613,41 @@ async function runJitterOnce() {
       postRates,
       jitterMap,
     });
+    const nowIso = new Date().toISOString();
     console.log(
-      `[auto-jitter] ${new Date().toISOString()} success=${summary.success} failed=${summary.failed} skipped=${summary.skipped}`
+      `[auto-jitter] ${nowIso} success=${summary.success} failed=${summary.failed} skipped=${summary.skipped}`
     );
+    // Persist full jitter run logs for inspection and surface failures in console
+    try {
+      const payloadDir = path.join(process.cwd(), 'payload_logs');
+      await fs.mkdir(payloadDir, { recursive: true });
+      const ts = nowIso.replaceAll(':', '').replaceAll('-', '').replace('T', '_').slice(0, 15);
+      const fname = path.join(payloadDir, `jitter_${ts}.json`);
+      await fs.writeFile(
+        fname,
+        JSON.stringify(
+          {
+            ts: nowIso,
+            success: summary.success,
+            failed: summary.failed,
+            skipped: summary.skipped,
+            logs: Array.isArray(summary.logs) ? summary.logs : [],
+          },
+          null,
+          2
+        ),
+        'utf-8'
+      );
+      console.log(`[auto-jitter] saved log: ${fname}`);
+      if (summary.failed > 0) {
+        const failures = (summary.logs || []).filter((l) =>
+          l.toLowerCase().includes('update failed')
+        );
+        failures.forEach((l) => console.error(`[auto-jitter] ${l}`));
+      }
+    } catch (e) {
+      console.warn('[auto-jitter] failed to write jitter log file:', e?.message || e);
+    }
   } catch (e) {
     console.error('[auto-jitter] failed:', e?.message || e);
   }
