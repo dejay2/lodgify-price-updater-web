@@ -47,6 +47,12 @@
             >OH/Website Addon £<input id="ohAddon" type="number" step="1" value="0"
           /></label>
         </div>
+        <h3>Fee Fold‑In</h3>
+        <div class="grid grid-4">
+          <label><input id="foldFeesEnabled" type="checkbox" /> Fold cleaning + service into nightly</label>
+          <label><input id="foldIncludeCleaning" type="checkbox" checked /> Include Cleaning Fee</label>
+          <label><input id="foldIncludeService" type="checkbox" checked /> Include Service Fee</label>
+        </div>
         <h3>Jitter (Auto Price Tweaks)</h3>
         <div class="grid grid-4">
           <label><input id="jitterEnabled" type="checkbox" /> Enable Auto Jitter</label>
@@ -183,6 +189,7 @@
       <section class="card page" data-page="run">
         <h2>Run</h2>
         <div class="actions">
+          <button id="dryRunBtn">Dry Run</button>
           <button id="runBtn">Run Update</button>
           <button id="importBookings">Import Upcoming Bookings</button>
           <button id="importAllBookings">Import All Bookings</button>

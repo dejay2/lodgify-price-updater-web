@@ -70,6 +70,15 @@ export async function runUpdate({ apiKey, settings, postRates, jitterMap = null 
   }
   log('Using rules mode (base/min + seasons)');
 
+  // Merge runtime settings with rules.settings so server honors UI-toggles
+  // for features like Fee Fold-In even when not explicitly included in body.
+  const effectiveSettings = { ...(rules?.settings || {}), ...(settings || {}) };
+  log(
+    `Fee fold-in: ${effectiveSettings.fold_fees_into_nightly ? 'enabled' : 'disabled'} (cleaning=${
+      effectiveSettings.fold_include_cleaning !== false
+    }, service=${effectiveSettings.fold_include_service !== false})`
+  );
+
   for (const prop of propsToProcess) {
     const pid = prop?.id;
     const rooms = prop.roomTypes?.length ? prop.roomTypes : prop.rooms || [];
@@ -82,7 +91,7 @@ export async function runUpdate({ apiKey, settings, postRates, jitterMap = null 
         startDate: settings.startDate,
         endDate: settings.endDate,
         rules: rules || { baseRates: {}, seasons: [] },
-        settings,
+        settings: effectiveSettings,
         jitterMap: jitterMap || undefined,
       });
       const status = rates.length ? 'ok' : 'skipped_no_rates';

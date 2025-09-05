@@ -59,6 +59,7 @@ Domain Model (rules summary)
 - `global_los[]` (optional): shared LOS tiers applied to all properties when present.
 - `overrides[<propertyId>][]`: exact dates with `{ date, price, min_stay?, max_stay? }`.
 - `settings`: UI + scheduler options including `override_color`, `auto_jitter_enabled`, jitter parameters, and channel fee/uplift sliders used by the calendar tooltip.
+  - Optional Fee Fold‑In: `fold_fees_into_nightly` (bool), `fold_include_cleaning` (bool), `fold_include_service` (bool).
 
 Pricing Flow (high level)
 
@@ -68,7 +69,9 @@ Pricing Flow (high level)
    - Season percent adjustments.
    - Discount window curve (start→end %) capped by `max_discount_pct` (if > 0).
    - LOS tier discounts (global or per property), weekend uplift for Fri/Sat.
-   - Optional jitter (per‑day percent) and final min‑price clamp.
+   - Optional jitter (per‑day percent).
+   - Optional Fee Fold‑In: add per‑night share of Cleaning/Service by LOS min_stay.
+   - Final min‑price clamp.
 3. Emit Lodgify payload rows with per‑additional‑guest pricing.
 
 Endpoints (server)
@@ -76,6 +79,7 @@ Endpoints (server)
 - Health: `GET /api/health`
 - Properties: `GET /api/properties`
 - Run update: `POST /api/run-update` (computes today → +18 months; honors `dryRun`).
+  - UI: Run tab exposes two actions — “Dry Run” (sends `dryRun: true`) and “Run Update” (posts rates).
 - Rules: `GET /api/rules`, `POST /api/rules` (persists file and (re)schedules jitter).
 - Bookings:
   - `GET /api/bookings/upcoming`, `GET /api/bookings/all`
@@ -92,6 +96,7 @@ Common Agent Tasks (and what to touch)
 - Adjust pricing math:
   - Server‑side: `src/rules.js` (buildRatesFromRules), and mirror preview in `public/app.js`.
   - Keep default `is_default` row and max 18‑month window constraints.
+  - Fee Fold‑In: add/change in `src/rules.js` and mirror in `public/app.js`. Do not alter day overrides.
 - Booking overlays or store fields:
   - Normalize incoming fields in `server.js::toRecord` and keep the UI read‑only for PII.
 - Auto‑jitter changes:
@@ -143,4 +148,3 @@ References
 
 - Getting Started for Codex Agents (memory & docs): https://github.com/openai/codex/blob/main/docs/getting-started.md#memory--project-docs
 - Agents.md pattern and best practices: https://agents.md/
-

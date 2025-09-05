@@ -5,10 +5,10 @@ const windowDaysInput = document.getElementById('windowDays');
 const startDiscountPctInput = document.getElementById('startDiscountPct');
 const endDiscountPctInput = document.getElementById('endDiscountPct');
 const minPriceInput = document.getElementById('minPrice');
-const dryRunInput = document.getElementById('dryRun');
 const loadPropsBtn = document.getElementById('loadProps');
 const saveSettingsBtn = document.getElementById('saveSettings');
 const runBtn = document.getElementById('runBtn');
+const dryRunBtn = document.getElementById('dryRunBtn');
 const importBookingsBtn = document.getElementById('importBookings');
 const importAllBookingsBtn = document.getElementById('importAllBookings');
 const syncUpdatesBtn = document.getElementById('syncUpdates');
@@ -51,6 +51,10 @@ const airbnbAddonInput = document.getElementById('airbnbAddon');
 const bookingUpliftInput = document.getElementById('bookingUpliftPct');
 const bookingAddonInput = document.getElementById('bookingAddon');
 const ohAddonInput = document.getElementById('ohAddon');
+// Fee fold-in UI
+const foldFeesEnabledInput = document.getElementById('foldFeesEnabled');
+const foldIncludeCleaningInput = document.getElementById('foldIncludeCleaning');
+const foldIncludeServiceInput = document.getElementById('foldIncludeService');
 
 // Default date range: today -> 18 months ahead (server enforces; UI displays if inputs exist)
 function fmtDate(d) {
@@ -284,7 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
     .catch(() => {});
 });
 
-runBtn.addEventListener('click', async () => {
+async function triggerRunUpdate(dryRun) {
   const selected = Array.from(propsDiv.querySelectorAll('.prop-list input[type=checkbox]'))
     .filter((c) => c.checked)
     .map((c) => c.value);
@@ -295,8 +299,14 @@ runBtn.addEventListener('click', async () => {
     endDiscountPct: Number(endDiscountPctInput.value),
     minPrice: Number(minPriceInput.value),
     rulesFile: rulesFileInput.value,
-    dryRun: !!dryRunInput.checked,
+    dryRun: !!dryRun,
     selectedPropertyIds: selected,
+    // pass fee fold-in flags so run respects current UI state even if not saved
+    fold_fees_into_nightly: !!(foldFeesEnabledInput && foldFeesEnabledInput.checked),
+    fold_include_cleaning:
+      foldIncludeCleaningInput != null ? !!foldIncludeCleaningInput.checked : undefined,
+    fold_include_service:
+      foldIncludeServiceInput != null ? !!foldIncludeServiceInput.checked : undefined,
   };
   log('Starting update…');
   try {
@@ -314,6 +324,14 @@ runBtn.addEventListener('click', async () => {
   } catch (e) {
     log(`Error: ${e.message}`);
   }
+}
+
+runBtn.addEventListener('click', async () => {
+  await triggerRunUpdate(false);
+});
+
+dryRunBtn.addEventListener('click', async () => {
+  await triggerRunUpdate(true);
 });
 
 // Import upcoming bookings, persist to upcoming_bookings.json and merge to store
@@ -502,6 +520,19 @@ async function loadRules() {
     bookingUpliftInput.value = rulesState.settings.booking_uplift_pct ?? 0;
   if (bookingAddonInput) bookingAddonInput.value = rulesState.settings.booking_addon_fee ?? 0;
   if (ohAddonInput) ohAddonInput.value = rulesState.settings.oh_addon_fee ?? 0;
+  // Fee fold-in → UI
+  if (foldFeesEnabledInput)
+    foldFeesEnabledInput.checked = !!rulesState.settings.fold_fees_into_nightly;
+  if (foldIncludeCleaningInput)
+    foldIncludeCleaningInput.checked =
+      rulesState.settings.fold_include_cleaning != null
+        ? !!rulesState.settings.fold_include_cleaning
+        : true;
+  if (foldIncludeServiceInput)
+    foldIncludeServiceInput.checked =
+      rulesState.settings.fold_include_service != null
+        ? !!rulesState.settings.fold_include_service
+        : true;
   renderSeasons();
   appReady.rules = true;
   renderOrchestrator();
@@ -609,6 +640,13 @@ async function saveRules() {
   if (bookingAddonInput)
     rulesState.settings.booking_addon_fee = Math.max(0, Number(bookingAddonInput.value || 0));
   if (ohAddonInput) rulesState.settings.oh_addon_fee = Math.max(0, Number(ohAddonInput.value || 0));
+  // Fee fold-in
+  if (foldFeesEnabledInput)
+    rulesState.settings.fold_fees_into_nightly = !!foldFeesEnabledInput.checked;
+  if (foldIncludeCleaningInput)
+    rulesState.settings.fold_include_cleaning = !!foldIncludeCleaningInput.checked;
+  if (foldIncludeServiceInput)
+    rulesState.settings.fold_include_service = !!foldIncludeServiceInput.checked;
   const body = {
     rulesFile: file,
     baseRates: rulesState.baseRates,
@@ -987,6 +1025,24 @@ function computeOneNightPrice(ds, pid) {
   const weekendPct = Number(rec.weekend_pct || rec.weekendPct || rec.weekend || 0);
   if (isWeekend && weekendPct) price = Math.floor(price * (1 + Math.abs(weekendPct) / 100));
   const globalMin = Number(minPriceInput?.value || 0);
+  // Optional: fold cleaning/service fees into nightly using LOS min_stay as amortization
+  if (rulesState?.settings?.fold_fees_into_nightly) {
+    const includeCleaning = rulesState.settings.fold_include_cleaning != null
+      ? !!rulesState.settings.fold_include_cleaning
+      : true;
+    const includeService = rulesState.settings.fold_include_service != null
+      ? !!rulesState.settings.fold_include_service
+      : true;
+    const feesTotal = (includeCleaning ? Number(rec.cleaning_fee || 0) : 0) +
+      (includeService ? Number(rec.service_fee || 0) : 0);
+    // pick amortization nights from the LOS that covers 1 night, else lowest min_days or 2
+    let nightsRef = 2;
+    if (cover && cover.min_days) nightsRef = Math.max(1, Number(cover.min_days));
+    else if (Array.isArray(los) && los.length) nightsRef = Math.max(1, Number(los[0].min_days || 2));
+    if (feesTotal > 0 && nightsRef > 0) {
+      price = price + Math.floor(feesTotal / nightsRef);
+    }
+  }
   price = Math.max(price, minRate || 0, globalMin || 0);
   return price;
 }

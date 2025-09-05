@@ -182,6 +182,14 @@ function normalizeRules(r, opts = {}) {
     booking_uplift_pct: Number(raw.settings?.booking_uplift_pct ?? 0),
     booking_addon_fee: Math.max(0, Number(raw.settings?.booking_addon_fee ?? 0)),
     oh_addon_fee: Math.max(0, Number(raw.settings?.oh_addon_fee ?? 0)),
+    // Fee fold-in (optional)
+    fold_fees_into_nightly: Boolean(raw.settings?.fold_fees_into_nightly || false),
+    fold_include_cleaning: raw.settings?.fold_include_cleaning != null
+      ? Boolean(raw.settings.fold_include_cleaning)
+      : true,
+    fold_include_service: raw.settings?.fold_include_service != null
+      ? Boolean(raw.settings.fold_include_service)
+      : true,
   };
   return { baseRates, seasons, overrides, settings, global_los };
 }
@@ -245,17 +253,35 @@ export function buildRatesFromRules({
   const weekendPct = Number(baseCfg.weekend_pct || 0);
   const maxDiscountPct = Number(baseCfg.max_discount_pct || 0);
   if (!base) return out;
+  // Resolve fee fold-in options from runtime settings with fallback to rules.settings
+  const ruleSettings = (rules && rules.settings) || {};
+  const foldEnabled =
+    (settings && settings.fold_fees_into_nightly) ?? ruleSettings.fold_fees_into_nightly ?? false;
+  const foldIncludeCleaning =
+    (settings && settings.fold_include_cleaning) ??
+    (ruleSettings.fold_include_cleaning ?? true);
+  const foldIncludeService =
+    (settings && settings.fold_include_service) ?? (ruleSettings.fold_include_service ?? true);
   // Default catch-all rate must be first. Lodgify requires an is_default=true
   // entry without dates. This is used for any dates not covered by specific
   // day entries. Price should be the Base Rate; min/max stay 2..30.
-  out.push({
-    is_default: true,
-    price_per_day: Math.floor(base),
-    min_stay: 2,
-    max_stay: 30,
-    price_per_additional_guest: Number(baseCfg.price_per_additional_guest || 0),
-    additional_guests_starts_from: Number(baseCfg.additional_guests_starts_from || 0),
-  });
+  {
+    let defaultPrice = Math.floor(base);
+    if (foldEnabled) {
+      const feesTotal = (foldIncludeCleaning ? Number(baseCfg.cleaning_fee || 0) : 0) +
+        (foldIncludeService ? Number(baseCfg.service_fee || 0) : 0);
+      // Use 2-nights as the default amortization reference
+      defaultPrice = Math.floor(base + (feesTotal > 0 ? feesTotal / 2 : 0));
+    }
+    out.push({
+      is_default: true,
+      price_per_day: defaultPrice,
+      min_stay: 2,
+      max_stay: 30,
+      price_per_additional_guest: Number(baseCfg.price_per_additional_guest || 0),
+      additional_guests_starts_from: Number(baseCfg.additional_guests_starts_from || 0),
+    });
+  }
   let losRules =
     Array.isArray(rules.global_los) && rules.global_los.length
       ? rules.global_los.slice()
@@ -337,6 +363,15 @@ export function buildRatesFromRules({
       const j = jitterMap?.[String(propId)]?.[ds];
       if (typeof j === 'number' && isFinite(j) && j !== 0) {
         p = Math.floor(p * (1 + j / 100));
+      }
+      // Optional: fold cleaning/service fees into nightly based on LOS min_stay
+      if (foldEnabled) {
+        const feesTotal = (foldIncludeCleaning ? Number(baseCfg.cleaning_fee || 0) : 0) +
+          (foldIncludeService ? Number(baseCfg.service_fee || 0) : 0);
+        const nightsRef = Math.max(1, Number(t.min_stay ?? 1));
+        if (feesTotal > 0 && nightsRef > 0) {
+          p = p + Math.floor(feesTotal / nightsRef);
+        }
       }
       if (minClamp && p < minClamp) p = minClamp;
       out.push({

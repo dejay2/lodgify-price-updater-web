@@ -464,9 +464,12 @@
     "jitter_seed_salt": "",
     "airbnb_uplift_pct": 19.18,
     "airbnb_addon_fee": 0,
-    "booking_uplift_pct": 0,
-    "booking_addon_fee": 0,
-    "oh_addon_fee": 0
+    "booking_uplift_pct": 18,
+    "booking_addon_fee": 120,
+    "oh_addon_fee": 0,
+    "fold_fees_into_nightly": false,
+    "fold_include_cleaning": false,
+    "fold_include_service": false
   },
   "global_los": [
     {

@@ -7,6 +7,7 @@ Features
 - Calendar-first UI with clean tabs:
   - Calendar (default), Settings, Discounts, Properties, LOS, Seasons, Run
 - Settings: single source of truth for API key, rules file, and override color.
+- Fee Fold‑In: option to fold Cleaning + Service fees into the nightly rate by LOS (amortized by the tier’s min nights).
 - Discounts: configure discount window, start/end % and minimum price (applies globally).
 - Properties: set per‑property base, min, weekend %, max discount % (cap for Discount tab only), and additional guest pricing.
 - Global LOS: manage Length‑of‑Stay tiers once (optional); if present it applies to all properties. Per‑property LOS is used only when Global LOS is empty.
@@ -48,7 +49,8 @@ Usage
 - Load Properties: Enter your API key (or leave blank to use `.env`) and click “Load Properties”.
 - Select the properties to process.
 - Adjust settings: window days, discounts, min price, start/end dates, and baseline options.
-- Click “Run Update” to perform a dry run (default) or uncheck “Dry Run” to actually post rates.
+  - Optional: under Settings → “Fee Fold‑In” enable “Fold cleaning + service into nightly” and choose which fees to include. Fees are amortized by the active LOS tier’s minimum nights and added after LOS/weekend/jitter adjustments.
+- Click “Dry Run” to generate payloads without posting. Click “Run Update” to post rates to Lodgify.
 - Seasonal Rules: set `Rules File` (default `price_rules.json`), pick a property and enter Base and Min rate; define one or more seasonal ranges with a percentage (additive if overlapping); click Save. When you Run Update, the app computes all day rates on-the-fly — no original/baseline rates are used.
 
 Bookings import and calendar overlays
@@ -96,6 +98,10 @@ Notes
 - Baseline is saved to `original_rates.json` (configurable) to avoid refetching each run.
 - Generated rate payloads are saved under `payload_logs/`.
 - If auto‑jitter is enabled, the server posts full rate payloads every interval with tiny adjustments on a few future dates while respecting min prices and rules. The scheduler reads its configuration from the current rules file.
+- Fee Fold‑In behaves as follows:
+  - Server computes per‑day price (base + season ± discount + LOS + weekend ± jitter), then adds a per‑night share of the selected fees using the LOS tier’s min_stay as the divisor. Final clamp to Min Price happens after fees are added.
+  - Day overrides are treated as final prices and are not adjusted.
+  - For LOS ranges (e.g., 7–13), the share uses the range’s minimum nights; define exact‑night tiers (e.g., 2, 3, 4, …) if you want precise amortization for shorter stays.
 - The logic is ported from `lodgify_manager.py` (update_prices and baseline/calendar fetch) to JavaScript.
 
 Troubleshooting

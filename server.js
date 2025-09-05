@@ -146,6 +146,16 @@ app.post('/api/run-update', async (req, res) => {
       selectedPropertyIds: Array.isArray(req.body.selectedPropertyIds)
         ? req.body.selectedPropertyIds
         : [],
+      // Optional fee fold-in flags passed from UI; merged with rules.settings later (undefined means: use rules)
+      fold_fees_into_nightly: Object.prototype.hasOwnProperty.call(req.body, 'fold_fees_into_nightly')
+        ? Boolean(req.body.fold_fees_into_nightly)
+        : undefined,
+      fold_include_cleaning: Object.prototype.hasOwnProperty.call(req.body, 'fold_include_cleaning')
+        ? Boolean(req.body.fold_include_cleaning)
+        : undefined,
+      fold_include_service: Object.prototype.hasOwnProperty.call(req.body, 'fold_include_service')
+        ? Boolean(req.body.fold_include_service)
+        : undefined,
     };
 
     // Basic validation before heavy lifting
@@ -583,6 +593,7 @@ async function runJitterOnce() {
       endExclusive.getDate() - 1
     );
     const settings = {
+      ...s, // include fee fold-in and other runtime settings from rules
       windowDays: 30,
       startDiscountPct: 30,
       endDiscountPct: 1,
