@@ -196,11 +196,23 @@ app.post('/api/rules', async (req, res) => {
     const body = req.body || {};
     if (!body.baseRates || !body.seasons)
       return res.status(400).json({ error: 'baseRates and seasons are required' });
+    // Preserve existing global_los if client omitted it
+    let incomingGlobalLos = Array.isArray(body.global_los) ? body.global_los : undefined;
+    if (typeof incomingGlobalLos === 'undefined') {
+      try {
+        const existing = await loadRules(file);
+        incomingGlobalLos = Array.isArray(existing?.global_los) ? existing.global_los : [];
+      } catch {
+        incomingGlobalLos = [];
+      }
+    }
+
     await saveRules(file, {
       baseRates: body.baseRates,
       seasons: body.seasons,
       overrides: body.overrides || {},
       settings: body.settings || {},
+      global_los: incomingGlobalLos,
     });
     await setActiveRulesFile(file);
     // Re-evaluate jitter scheduler after any rules save
@@ -465,6 +477,10 @@ function toRecord(b) {
     ),
     status: b?.status ?? b?.bookingStatus ?? null,
     source: pickSource(b),
+    currency_code: b?.currency_code ?? b?.currencyCode ?? null,
+    total_amount: normNumber(b?.total_amount ?? b?.totalAmount ?? b?.total ?? null),
+    amount_paid: normNumber(b?.amount_paid ?? b?.amountPaid ?? null),
+    subtotals_stay: normNumber(b?.subtotals?.stay ?? null),
   };
 }
 async function mergeIntoBookingsStore(items) {

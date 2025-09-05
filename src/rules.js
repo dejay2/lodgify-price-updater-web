@@ -52,6 +52,9 @@ function normalizeRules(r, opts = {}) {
     rec.additional_guests_starts_from = Number(
       rec.additional_guests_starts_from ?? rec.addl_from ?? rec.additional_guests_start ?? 0
     );
+    // Per-property fees
+    rec.cleaning_fee = Number(rec.cleaning_fee ?? rec.cleaningFee ?? rec.cleaning ?? 0);
+    rec.service_fee = Number(rec.service_fee ?? rec.serviceFee ?? rec.service ?? 0);
     // Normalize LOS rules array
     let los = Array.isArray(rec.los)
       ? rec.los.map((x) => ({
@@ -173,6 +176,12 @@ function normalizeRules(r, opts = {}) {
     jitter_markup_max: Number(raw.settings?.jitter_markup_max ?? 2),
     jitter_seed_salt:
       typeof raw.settings?.jitter_seed_salt === 'string' ? raw.settings.jitter_seed_salt : '',
+    // Channel fees / uplifts (numbers, default 0)
+    airbnb_uplift_pct: Number(raw.settings?.airbnb_uplift_pct ?? 0),
+    airbnb_addon_fee: Math.max(0, Number(raw.settings?.airbnb_addon_fee ?? 0)),
+    booking_uplift_pct: Number(raw.settings?.booking_uplift_pct ?? 0),
+    booking_addon_fee: Math.max(0, Number(raw.settings?.booking_addon_fee ?? 0)),
+    oh_addon_fee: Math.max(0, Number(raw.settings?.oh_addon_fee ?? 0)),
   };
   return { baseRates, seasons, overrides, settings, global_los };
 }

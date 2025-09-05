@@ -27,8 +27,25 @@
           <label>Rules File<input id="rulesFile" type="text" value="price_rules.json" /></label>
           <label>Override Color<input id="overrideColor" type="color" value="#ffd1dc" /></label>
           <div class="actions" style="align-self: end">
-            <button id="loadProps">Load Properties</button>
+            <button id="saveSettings">Save Settings</button>
+            <button id="loadProps">Reload Properties</button>
           </div>
+        </div>
+        <h3>Channel Fees / Uplifts</h3>
+        <div class="grid grid-4">
+          <label
+            >Airbnb Uplift %<input id="airbnbUpliftPct" type="number" step="0.5" value="0"
+          /></label>
+          <label>Airbnb Addon £<input id="airbnbAddon" type="number" step="1" value="0" /></label>
+          <label
+            >Booking.com Uplift %<input id="bookingUpliftPct" type="number" step="0.5" value="0"
+          /></label>
+          <label
+            >Booking.com Addon £<input id="bookingAddon" type="number" step="1" value="0"
+          /></label>
+          <label
+            >OH/Website Addon £<input id="ohAddon" type="number" step="1" value="0"
+          /></label>
         </div>
         <h3>Jitter (Auto Price Tweaks)</h3>
         <div class="grid grid-4">
@@ -105,6 +122,8 @@
           <label
             >Additional Starts From<input id="addlFrom" type="number" step="1" value="0"
           /></label>
+          <label>Cleaning Fee £<input id="cleaningFee" type="number" step="1" value="0" /></label>
+          <label>Service Fee £<input id="serviceFee" type="number" step="1" value="0" /></label>
         </div>
         <div class="actions">
           <button id="saveRates">Save</button>

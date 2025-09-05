@@ -7,6 +7,7 @@ const endDiscountPctInput = document.getElementById('endDiscountPct');
 const minPriceInput = document.getElementById('minPrice');
 const dryRunInput = document.getElementById('dryRun');
 const loadPropsBtn = document.getElementById('loadProps');
+const saveSettingsBtn = document.getElementById('saveSettings');
 const runBtn = document.getElementById('runBtn');
 const importBookingsBtn = document.getElementById('importBookings');
 const importAllBookingsBtn = document.getElementById('importAllBookings');
@@ -25,6 +26,8 @@ const weekendRateInput = document.getElementById('weekendRate');
 const maxDiscountPctInput = document.getElementById('maxDiscountPct');
 const ppagInput = document.getElementById('ppag');
 const addlFromInput = document.getElementById('addlFrom');
+const cleaningFeeInput = document.getElementById('cleaningFee');
+const serviceFeeInput = document.getElementById('serviceFee');
 const loadRulesBtn = document.getElementById('loadRules');
 const saveRatesBtn = document.getElementById('saveRates');
 const seasonsDiv = document.getElementById('seasons');
@@ -42,6 +45,12 @@ const jitterMarkdownMaxInput = document.getElementById('jitterMarkdownMax');
 const jitterMarkupMinInput = document.getElementById('jitterMarkupMin');
 const jitterMarkupMaxInput = document.getElementById('jitterMarkupMax');
 const jitterSeedInput = document.getElementById('jitterSeed');
+// Channel fees / uplifts UI
+const airbnbUpliftInput = document.getElementById('airbnbUpliftPct');
+const airbnbAddonInput = document.getElementById('airbnbAddon');
+const bookingUpliftInput = document.getElementById('bookingUpliftPct');
+const bookingAddonInput = document.getElementById('bookingAddon');
+const ohAddonInput = document.getElementById('ohAddon');
 
 // Default date range: today -> 18 months ahead (server enforces; UI displays if inputs exist)
 function fmtDate(d) {
@@ -128,6 +137,25 @@ function renderOrchestrator() {
 loadPropsBtn.addEventListener('click', () => {
   propsDiv.innerHTML = 'Loading…';
   loadPropertiesAndRender();
+});
+
+// Save Settings button: persist override color, jitter and channel fee/uplift settings
+saveSettingsBtn?.addEventListener('click', async (e) => {
+  const btn = e.currentTarget;
+  const prev = btn.textContent;
+  btn.textContent = 'Saving…';
+  btn.disabled = true;
+  try {
+    await saveRules();
+    showToast('Settings saved', 'success');
+    // Re-load to reflect normalized values
+    await loadRules().catch(() => {});
+  } catch (err) {
+    showToast(err?.message || 'Failed to save settings', 'error', 5000);
+  } finally {
+    btn.textContent = prev;
+    btn.disabled = false;
+  }
 });
 
 async function loadPropertiesAndRender() {
@@ -399,6 +427,12 @@ saveRatesBtn.addEventListener('click', async (e) => {
     additional_guests_starts_from: Number(
       typeof addlFromInput !== 'undefined' && addlFromInput ? addlFromInput.value || 0 : 0
     ),
+    cleaning_fee: Number(
+      typeof cleaningFeeInput !== 'undefined' && cleaningFeeInput ? cleaningFeeInput.value || 0 : 0
+    ),
+    service_fee: Number(
+      typeof serviceFeeInput !== 'undefined' && serviceFeeInput ? serviceFeeInput.value || 0 : 0
+    ),
     los: Array.isArray(existing.los) ? existing.los : [],
   };
   try {
@@ -460,6 +494,14 @@ async function loadRules() {
   if (jitterMarkupMinInput) jitterMarkupMinInput.value = rulesState.settings.jitter_markup_min ?? 0;
   if (jitterMarkupMaxInput) jitterMarkupMaxInput.value = rulesState.settings.jitter_markup_max ?? 2;
   if (jitterSeedInput) jitterSeedInput.value = rulesState.settings.jitter_seed_salt ?? '';
+  // Channel fees/uplifts → UI
+  if (airbnbUpliftInput)
+    airbnbUpliftInput.value = rulesState.settings.airbnb_uplift_pct ?? 0;
+  if (airbnbAddonInput) airbnbAddonInput.value = rulesState.settings.airbnb_addon_fee ?? 0;
+  if (bookingUpliftInput)
+    bookingUpliftInput.value = rulesState.settings.booking_uplift_pct ?? 0;
+  if (bookingAddonInput) bookingAddonInput.value = rulesState.settings.booking_addon_fee ?? 0;
+  if (ohAddonInput) ohAddonInput.value = rulesState.settings.oh_addon_fee ?? 0;
   renderSeasons();
   appReady.rules = true;
   renderOrchestrator();
@@ -513,6 +555,10 @@ function updateBaseMinForSelectedProp() {
     maxDiscountPctInput.value = rec.max_discount_pct ?? rec.maxDiscountPct ?? '';
   if (ppagInput)
     ppagInput.value = rec.price_per_additional_guest ?? rec.additional_guest_price ?? 0;
+  if (typeof cleaningFeeInput !== 'undefined' && cleaningFeeInput)
+    cleaningFeeInput.value = rec.cleaning_fee ?? rec.cleaningFee ?? 0;
+  if (typeof serviceFeeInput !== 'undefined' && serviceFeeInput)
+    serviceFeeInput.value = rec.service_fee ?? rec.serviceFee ?? 0;
   if (addlFromInput) addlFromInput.value = rec.additional_guests_starts_from ?? rec.addl_from ?? 0;
   renderGlobalLos();
 }
@@ -553,12 +599,23 @@ async function saveRules() {
   if (jitterMarkupMaxInput)
     rulesState.settings.jitter_markup_max = Number(jitterMarkupMaxInput.value || 2);
   if (jitterSeedInput) rulesState.settings.jitter_seed_salt = jitterSeedInput.value || '';
+  // Gather channel fees/uplifts
+  if (airbnbUpliftInput)
+    rulesState.settings.airbnb_uplift_pct = Number(airbnbUpliftInput.value || 0);
+  if (airbnbAddonInput)
+    rulesState.settings.airbnb_addon_fee = Math.max(0, Number(airbnbAddonInput.value || 0));
+  if (bookingUpliftInput)
+    rulesState.settings.booking_uplift_pct = Number(bookingUpliftInput.value || 0);
+  if (bookingAddonInput)
+    rulesState.settings.booking_addon_fee = Math.max(0, Number(bookingAddonInput.value || 0));
+  if (ohAddonInput) rulesState.settings.oh_addon_fee = Math.max(0, Number(ohAddonInput.value || 0));
   const body = {
     rulesFile: file,
     baseRates: rulesState.baseRates,
     seasons: rulesState.seasons,
     overrides: rulesState.overrides || {},
     settings: rulesState.settings,
+    global_los: Array.isArray(rulesState.global_los) ? rulesState.global_los : [],
   };
   const r = await fetch('/api/rules', {
     method: 'POST',
@@ -868,6 +925,24 @@ function getSeasonForDate(ds) {
   return match;
 }
 
+// Mirror server-side discount curve for preview
+function computeDiscountPctLocal({ date, windowDays = 30, startDiscountPct = 30, endDiscountPct = 1 }) {
+  try {
+    const d = new Date(date + 'T00:00:00');
+    const t0 = new Date(new Date().toDateString()); // local midnight today
+    const daysUntil = Math.floor((d - t0) / 86400000);
+    if (daysUntil < 0) return 0;
+    const effectiveWindow = Math.max(1, Number(windowDays || 30));
+    if (daysUntil >= effectiveWindow) return 0;
+    const startDec = Math.max(0, Math.min(100, Number(startDiscountPct || 0))) / 100.0;
+    const endDec = Math.max(0, Math.min(100, Number(endDiscountPct || 0))) / 100.0;
+    const progress = effectiveWindow > 1 ? daysUntil / (effectiveWindow - 1.0) : 0.0;
+    return startDec + (endDec - startDec) * progress; // returns 0..1
+  } catch {
+    return 0;
+  }
+}
+
 function computeOneNightPrice(ds, pid) {
   const rec = rulesState.baseRates[pid] || {};
   const base = Number(rec.base || 0);
@@ -880,7 +955,21 @@ function computeOneNightPrice(ds, pid) {
     return Math.floor(Number(ovr.price));
   }
   const seasonPct = getSeasonPctForDate(ds);
-  const baseAdj = Math.floor(base * (1 + seasonPct / 100));
+  // Apply discount window and cap per property
+  const discPctRaw = computeDiscountPctLocal({
+    date: ds,
+    windowDays: Number(windowDaysInput?.value || 30),
+    startDiscountPct: Number(startDiscountPctInput?.value || 30),
+    endDiscountPct: Number(endDiscountPctInput?.value || 1),
+  });
+  let discPct = discPctRaw; // 0..1
+  const maxDiscPct = Number(rec.max_discount_pct || rec.maxDiscountPct || 0);
+  if (maxDiscPct > 0) {
+    const cap = Math.max(0, Math.min(1, maxDiscPct / 100));
+    discPct = Math.min(discPct, cap);
+  }
+  const baseSeason = Math.floor(base * (1 + seasonPct / 100));
+  const baseAdj = discPct ? Math.floor(baseSeason * (1 - discPct)) : baseSeason;
   // find LOS that covers 1 night
   const los =
     Array.isArray(rulesState.global_los) && rulesState.global_los.length
@@ -1011,6 +1100,55 @@ function renderCalendar() {
             const ch = getBookingChannel(matches[0]);
             const band = document.createElement('div');
             band.className = `cal-booking ${ch}`;
+            // Compute per-night paid if amounts are available
+            const b = matches[0];
+            const [cin, cout] = getBookingDates(b);
+            let nights = 0;
+            try {
+              const a = new Date(cin + 'T00:00:00');
+              const d2 = new Date(cout + 'T00:00:00');
+              nights = Math.max(1, Math.round((d2 - a) / 86400000));
+            } catch {}
+            const total =
+              Number(b?.total_amount || 0) || Number(b?.amount_paid || 0) || Number(b?.subtotals_stay || 0) || 0;
+            // Channel-specific adjustments: subtract addon fees and remove uplift
+            let adj = total;
+            try {
+              const rawSrc = (b?.channelName ?? b?.channel ?? b?.source ?? b?.origin ?? '')
+                .toString()
+                .toLowerCase();
+              const s = rulesState?.settings || {};
+              const add = (v) => Math.max(0, Number(v || 0));
+              const pct = (v) => Math.max(0, Number(v || 0));
+              if (rawSrc.includes('airbnb')) {
+                adj = Math.max(0, adj - add(s.airbnb_addon_fee));
+                const u = pct(s.airbnb_uplift_pct);
+                if (u > 0) adj = adj / (1 + u / 100);
+              } else if (rawSrc.includes('booking')) {
+                adj = Math.max(0, adj - add(s.booking_addon_fee));
+                const u = pct(s.booking_uplift_pct);
+                if (u > 0) adj = adj / (1 + u / 100);
+              } else if (rawSrc.includes('oh') || rawSrc.includes('manual') || rawSrc.includes('website')) {
+                adj = Math.max(0, adj - add(s.oh_addon_fee));
+              } else {
+                // For unknown channels, leave as-is
+              }
+            } catch {}
+            if (nights > 0 && total > 0) {
+              const per = Math.round((adj > 0 ? adj : 0) / nights);
+              const paid = document.createElement('div');
+              paid.className = 'cal-paid';
+              const cur = (b?.currency_code || 'GBP').toUpperCase();
+              const sym = cur === 'GBP' ? '£' : cur === 'USD' ? '$' : cur === 'EUR' ? '€' : '';
+              paid.textContent = `${sym}${per}/d`;
+              const parts = [];
+              if (total > 0) parts.push(`raw ${sym}${total}`);
+              parts.push(`adj ${sym}${Math.round(adj)}`);
+              parts.push(`${nights} night(s)`);
+              paid.title = parts.join(' · ');
+              cell.appendChild(paid);
+              band.title = paid.title;
+            }
             band.textContent = 'Booked';
             cell.appendChild(band);
           }
@@ -1058,6 +1196,11 @@ function renderCalendar() {
 
 propSelectCal?.addEventListener('change', renderCalendar);
 monthInput?.addEventListener('change', renderCalendar);
+// Re-render calendar when discount settings change to reflect preview accurately
+windowDaysInput?.addEventListener('input', renderCalendar);
+startDiscountPctInput?.addEventListener('input', renderCalendar);
+endDiscountPctInput?.addEventListener('input', renderCalendar);
+minPriceInput?.addEventListener('input', renderCalendar);
 
 function changeMonth(delta) {
   if (!monthInput.value) return;

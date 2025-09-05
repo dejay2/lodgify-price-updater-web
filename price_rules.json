@@ -56,7 +56,10 @@
       ],
       "weekend_pct": 20,
       "price_per_additional_guest": 5,
-      "additional_guests_starts_from": 2
+      "additional_guests_starts_from": 2,
+      "max_discount_pct": 30,
+      "cleaning_fee": 114,
+      "service_fee": 60
     },
     "327021": {
       "base": 356,
@@ -72,7 +75,10 @@
       ],
       "weekend_pct": 20,
       "price_per_additional_guest": 5,
-      "additional_guests_starts_from": 2
+      "additional_guests_starts_from": 2,
+      "max_discount_pct": 30,
+      "cleaning_fee": 126,
+      "service_fee": 60
     },
     "327168": {
       "base": 356,
@@ -88,7 +94,10 @@
       ],
       "weekend_pct": 20,
       "price_per_additional_guest": 5,
-      "additional_guests_starts_from": 2
+      "additional_guests_starts_from": 2,
+      "max_discount_pct": 30,
+      "cleaning_fee": 157.2,
+      "service_fee": 60
     },
     "327169": {
       "base": 356,
@@ -104,7 +113,10 @@
       ],
       "weekend_pct": 20,
       "price_per_additional_guest": 5,
-      "additional_guests_starts_from": 2
+      "additional_guests_starts_from": 2,
+      "max_discount_pct": 30,
+      "cleaning_fee": 138,
+      "service_fee": 60
     },
     "327177": {
       "base": 275,
@@ -120,7 +132,10 @@
       ],
       "weekend_pct": 20,
       "price_per_additional_guest": 5,
-      "additional_guests_starts_from": 2
+      "additional_guests_starts_from": 2,
+      "max_discount_pct": 30,
+      "cleaning_fee": 126,
+      "service_fee": 60
     },
     "327178": {
       "base": 275,
@@ -136,7 +151,10 @@
       ],
       "weekend_pct": 20,
       "price_per_additional_guest": 5,
-      "additional_guests_starts_from": 2
+      "additional_guests_starts_from": 2,
+      "max_discount_pct": 30,
+      "cleaning_fee": 126,
+      "service_fee": 60
     },
     "591981": {
       "base": 275,
@@ -152,10 +170,13 @@
       ],
       "weekend_pct": 20,
       "price_per_additional_guest": 5,
-      "additional_guests_starts_from": 2
+      "additional_guests_starts_from": 2,
+      "max_discount_pct": 30,
+      "cleaning_fee": 114,
+      "service_fee": 60
     },
     "602278": {
-      "base": 275,
+      "base": 317.66,
       "min": 100,
       "los": [
         {
@@ -168,7 +189,10 @@
       ],
       "weekend_pct": 20,
       "price_per_additional_guest": 5,
-      "additional_guests_starts_from": 2
+      "additional_guests_starts_from": 2,
+      "max_discount_pct": 30,
+      "cleaning_fee": 116,
+      "service_fee": 60
     }
   },
   "seasons": [
@@ -323,12 +347,6 @@
     ],
     "327021": [
       {
-        "date": "2025-09-05",
-        "price": 200,
-        "min_stay": 2,
-        "max_stay": 10
-      },
-      {
         "date": "2025-12-31",
         "price": 750,
         "min_stay": null,
@@ -367,12 +385,6 @@
         "price": 750,
         "min_stay": 2,
         "max_stay": 6
-      },
-      {
-        "date": "2025-09-11",
-        "price": 100,
-        "min_stay": null,
-        "max_stay": null
       }
     ],
     "327177": [
@@ -439,7 +451,22 @@
     ]
   },
   "settings": {
-    "override_color": "#e1ff00"
+    "override_color": "#e1ff00",
+    "auto_jitter_enabled": false,
+    "jitter_interval_minutes": 60,
+    "jitter_lookahead_days": 30,
+    "jitter_block_near_days": 2,
+    "jitter_dates_per_run": 2,
+    "jitter_markdown_min": 5,
+    "jitter_markdown_max": 8,
+    "jitter_markup_min": 0,
+    "jitter_markup_max": 2,
+    "jitter_seed_salt": "",
+    "airbnb_uplift_pct": 19.18,
+    "airbnb_addon_fee": 0,
+    "booking_uplift_pct": 0,
+    "booking_addon_fee": 0,
+    "oh_addon_fee": 0
   },
   "global_los": [
     {
