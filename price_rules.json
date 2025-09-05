@@ -2,7 +2,7 @@
   "baseRates": {
     "327020": {
       "base": 275,
-      "min": 100,
+      "min": 1,
       "los": [
         {
           "name": "2 Nights",
@@ -57,9 +57,10 @@
       "weekend_pct": 20,
       "price_per_additional_guest": 5,
       "additional_guests_starts_from": 2,
-      "max_discount_pct": 30,
+      "max_discount_pct": 100,
       "cleaning_fee": 114,
-      "service_fee": 60
+      "service_fee": 60,
+      "min_profit_pct": 0
     },
     "327021": {
       "base": 356,
@@ -78,7 +79,8 @@
       "additional_guests_starts_from": 2,
       "max_discount_pct": 30,
       "cleaning_fee": 126,
-      "service_fee": 60
+      "service_fee": 60,
+      "min_profit_pct": 0
     },
     "327168": {
       "base": 356,
@@ -97,7 +99,8 @@
       "additional_guests_starts_from": 2,
       "max_discount_pct": 30,
       "cleaning_fee": 157.2,
-      "service_fee": 60
+      "service_fee": 60,
+      "min_profit_pct": 0
     },
     "327169": {
       "base": 356,
@@ -116,7 +119,8 @@
       "additional_guests_starts_from": 2,
       "max_discount_pct": 30,
       "cleaning_fee": 138,
-      "service_fee": 60
+      "service_fee": 60,
+      "min_profit_pct": 0
     },
     "327177": {
       "base": 275,
@@ -135,7 +139,8 @@
       "additional_guests_starts_from": 2,
       "max_discount_pct": 30,
       "cleaning_fee": 126,
-      "service_fee": 60
+      "service_fee": 60,
+      "min_profit_pct": 0
     },
     "327178": {
       "base": 275,
@@ -154,7 +159,8 @@
       "additional_guests_starts_from": 2,
       "max_discount_pct": 30,
       "cleaning_fee": 126,
-      "service_fee": 60
+      "service_fee": 60,
+      "min_profit_pct": 0
     },
     "591981": {
       "base": 275,
@@ -173,7 +179,8 @@
       "additional_guests_starts_from": 2,
       "max_discount_pct": 30,
       "cleaning_fee": 114,
-      "service_fee": 60
+      "service_fee": 60,
+      "min_profit_pct": 0
     },
     "602278": {
       "base": 317.66,
@@ -192,7 +199,8 @@
       "additional_guests_starts_from": 2,
       "max_discount_pct": 30,
       "cleaning_fee": 116,
-      "service_fee": 60
+      "service_fee": 60,
+      "min_profit_pct": 0
     }
   },
   "seasons": [
@@ -467,9 +475,13 @@
     "booking_uplift_pct": 18,
     "booking_addon_fee": 120,
     "oh_addon_fee": 0,
-    "fold_fees_into_nightly": false,
-    "fold_include_cleaning": false,
-    "fold_include_service": false
+    "window_days": 30,
+    "start_discount_pct": 30,
+    "end_discount_pct": 1,
+    "min_price": 0,
+    "fold_fees_into_nightly": true,
+    "fold_include_cleaning": true,
+    "fold_include_service": true
   },
   "global_los": [
     {

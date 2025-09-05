@@ -73,6 +73,15 @@ export async function runUpdate({ apiKey, settings, postRates, jitterMap = null 
   // Merge runtime settings with rules.settings so server honors UI-toggles
   // for features like Fee Fold-In even when not explicitly included in body.
   const effectiveSettings = { ...(rules?.settings || {}), ...(settings || {}) };
+  // Bridge snake_case ↔ camelCase for discount fields so persisted values work
+  if (effectiveSettings.windowDays == null && effectiveSettings.window_days != null)
+    effectiveSettings.windowDays = effectiveSettings.window_days;
+  if (effectiveSettings.startDiscountPct == null && effectiveSettings.start_discount_pct != null)
+    effectiveSettings.startDiscountPct = effectiveSettings.start_discount_pct;
+  if (effectiveSettings.endDiscountPct == null && effectiveSettings.end_discount_pct != null)
+    effectiveSettings.endDiscountPct = effectiveSettings.end_discount_pct;
+  if (effectiveSettings.minPrice == null && effectiveSettings.min_price != null)
+    effectiveSettings.minPrice = effectiveSettings.min_price;
   log(
     `Fee fold-in: ${effectiveSettings.fold_fees_into_nightly ? 'enabled' : 'disabled'} (cleaning=${
       effectiveSettings.fold_include_cleaning !== false

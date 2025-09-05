@@ -8,8 +8,8 @@ Features
   - Calendar (default), Settings, Discounts, Properties, LOS, Seasons, Run
 - Settings: single source of truth for API key, rules file, and override color.
 - Fee Fold‑In: option to fold Cleaning + Service fees into the nightly rate by LOS (amortized by the tier’s min nights).
-- Discounts: configure discount window, start/end % and minimum price (applies globally).
-- Properties: set per‑property base, min, weekend %, max discount % (cap for Discount tab only), and additional guest pricing.
+- Discounts: configure discount window, start/end % and minimum price (applies globally). Use “Save Discounts” to persist defaults in the rules file.
+- Properties: set per‑property base, min, min profit %, weekend %, max discount % (cap for Discount tab only), and additional guest pricing.
 - Global LOS: manage Length‑of‑Stay tiers once (optional); if present it applies to all properties. Per‑property LOS is used only when Global LOS is empty.
 - Seasons: add date ranges with additive percent adjustments and optional colors.
 - Calendar preview: shows prices, season indicator bar, weekend hinting, booked bands, and translucent override highlight. Drag‑select date ranges to set overrides in bulk.
@@ -100,6 +100,10 @@ Notes
 - If auto‑jitter is enabled, the server posts full rate payloads every interval with tiny adjustments on a few future dates while respecting min prices and rules. The scheduler reads its configuration from the current rules file.
 - Fee Fold‑In behaves as follows:
   - Server computes per‑day price (base + season ± discount + LOS + weekend ± jitter), then adds a per‑night share of the selected fees using the LOS tier’s min_stay as the divisor. Final clamp to Min Price happens after fees are added.
+  - Profit-based minimum nightly price: configure per property via “Min Profit %”. The cost basis is Cleaning + Service fees. The nightly floor is computed per LOS tier using its min_stay:
+    - If Fee Fold‑In is OFF: floor = (fees / nights) × (profit% / 100) — ensures nightly profit is at least the chosen % of total fees.
+    - If Fee Fold‑In is ON: floor = (fees / nights) × (1 + profit% / 100) — nightly includes amortized fees plus desired profit.
+  - Final clamp uses the highest of: per‑property Min Rate, global Minimum Price, and the Profit-based minimum.
   - Day overrides are treated as final prices and are not adjusted.
   - For LOS ranges (e.g., 7–13), the share uses the range’s minimum nights; define exact‑night tiers (e.g., 2, 3, 4, …) if you want precise amortization for shorter stays.
 - The logic is ported from `lodgify_manager.py` (update_prices and baseline/calendar fetch) to JavaScript.

@@ -5,6 +5,7 @@ const windowDaysInput = document.getElementById('windowDays');
 const startDiscountPctInput = document.getElementById('startDiscountPct');
 const endDiscountPctInput = document.getElementById('endDiscountPct');
 const minPriceInput = document.getElementById('minPrice');
+const saveDiscountsBtn = document.getElementById('saveDiscounts');
 const loadPropsBtn = document.getElementById('loadProps');
 const saveSettingsBtn = document.getElementById('saveSettings');
 const runBtn = document.getElementById('runBtn');
@@ -22,6 +23,7 @@ const rulesFileInput = document.getElementById('rulesFile');
 const propSelectRules = document.getElementById('propSelectRules');
 const baseRateInput = document.getElementById('baseRate');
 const minRateInput = document.getElementById('minRate');
+const minProfitPctInput = document.getElementById('minProfitPct');
 const weekendRateInput = document.getElementById('weekendRate');
 const maxDiscountPctInput = document.getElementById('maxDiscountPct');
 const ppagInput = document.getElementById('ppag');
@@ -416,7 +418,7 @@ propSelectRules.addEventListener('change', () => {
   }
 });
 if (loadRulesBtn) {
-  loadRulesBtn.addEventListener('click', async () => {
+loadRulesBtn.addEventListener('click', async () => {
     try {
       await loadRules();
       showToast('Rules loaded', 'success');
@@ -437,6 +439,9 @@ saveRatesBtn.addEventListener('click', async (e) => {
     ...existing,
     base: Number(baseRateInput.value || 0),
     min: Number(minRateInput.value || 0),
+    min_profit_pct: Number(
+      typeof minProfitPctInput !== 'undefined' && minProfitPctInput ? minProfitPctInput.value || 0 : 0
+    ),
     weekend_pct: Number(weekendRateInput?.value || 0),
     max_discount_pct: Number(maxDiscountPctInput?.value || 0),
     price_per_additional_guest: Number(
@@ -463,6 +468,35 @@ saveRatesBtn.addEventListener('click', async (e) => {
     btn.disabled = false;
     // Rehydrate from disk to confirm and reflect persisted values
     loadRules().catch(() => {});
+  }
+});
+// Save Discounts button: persist discount window + min price into rules.settings
+saveDiscountsBtn?.addEventListener('click', async (e) => {
+  const btn = e.currentTarget;
+  const prev = btn.textContent;
+  btn.textContent = 'Saving…';
+  btn.disabled = true;
+  try {
+    if (!rulesState.settings) rulesState.settings = {};
+    rulesState.settings.window_days = Math.max(0, Number(windowDaysInput.value || 0));
+    rulesState.settings.start_discount_pct = Math.max(
+      0,
+      Math.min(100, Number(startDiscountPctInput.value || 0))
+    );
+    rulesState.settings.end_discount_pct = Math.max(
+      0,
+      Math.min(100, Number(endDiscountPctInput.value || 0))
+    );
+    rulesState.settings.min_price = Math.max(0, Number(minPriceInput.value || 0));
+    await saveRules();
+    // Re-load to reflect normalized values and confirm persistence
+    await loadRules().catch(() => {});
+    showToast('Discounts saved', 'success');
+  } catch (err) {
+    showToast(err?.message || 'Failed to save discounts', 'error', 5000);
+  } finally {
+    btn.textContent = prev;
+    btn.disabled = false;
   }
 });
 addSeasonBtn.addEventListener('click', () => {
@@ -495,6 +529,23 @@ async function loadRules() {
   if (!rulesState.settings) rulesState.settings = {};
   if (overrideColorInput)
     overrideColorInput.value = rulesState.settings.override_color || '#ffd1dc';
+  // Discounts settings → UI (persisted in rules.settings if saved)
+  if (windowDaysInput && rulesState.settings.window_days != null)
+    windowDaysInput.value = rulesState.settings.window_days;
+  else if (windowDaysInput && rulesState.settings.windowDays != null)
+    windowDaysInput.value = rulesState.settings.windowDays;
+  if (startDiscountPctInput && rulesState.settings.start_discount_pct != null)
+    startDiscountPctInput.value = rulesState.settings.start_discount_pct;
+  else if (startDiscountPctInput && rulesState.settings.startDiscountPct != null)
+    startDiscountPctInput.value = rulesState.settings.startDiscountPct;
+  if (endDiscountPctInput && rulesState.settings.end_discount_pct != null)
+    endDiscountPctInput.value = rulesState.settings.end_discount_pct;
+  else if (endDiscountPctInput && rulesState.settings.endDiscountPct != null)
+    endDiscountPctInput.value = rulesState.settings.endDiscountPct;
+  if (minPriceInput && rulesState.settings.min_price != null)
+    minPriceInput.value = rulesState.settings.min_price;
+  else if (minPriceInput && rulesState.settings.minPrice != null)
+    minPriceInput.value = rulesState.settings.minPrice;
   // Jitter settings → UI
   if (jitterEnabledInput) jitterEnabledInput.checked = !!rulesState.settings.auto_jitter_enabled;
   if (jitterIntervalInput)
@@ -580,6 +631,8 @@ function updateBaseMinForSelectedProp() {
   const rec = rulesState.baseRates[pid] || {};
   baseRateInput.value = rec.base ?? rec.baseRate ?? '';
   minRateInput.value = rec.min ?? rec.minRate ?? '';
+  if (minProfitPctInput)
+    minProfitPctInput.value = rec.min_profit_pct ?? rec.minProfitPct ?? 0;
   if (weekendRateInput)
     weekendRateInput.value = rec.weekend_pct ?? rec.weekendPct ?? rec.weekend ?? 0;
   if (maxDiscountPctInput)
@@ -647,6 +700,21 @@ async function saveRules() {
     rulesState.settings.fold_include_cleaning = !!foldIncludeCleaningInput.checked;
   if (foldIncludeServiceInput)
     rulesState.settings.fold_include_service = !!foldIncludeServiceInput.checked;
+  // Persist Discounts (if present) when saving settings from the Settings tab
+  if (windowDaysInput)
+    rulesState.settings.window_days = Math.max(0, Number(windowDaysInput.value || 0));
+  if (startDiscountPctInput)
+    rulesState.settings.start_discount_pct = Math.max(
+      0,
+      Math.min(100, Number(startDiscountPctInput.value || 0))
+    );
+  if (endDiscountPctInput)
+    rulesState.settings.end_discount_pct = Math.max(
+      0,
+      Math.min(100, Number(endDiscountPctInput.value || 0))
+    );
+  if (minPriceInput)
+    rulesState.settings.min_price = Math.max(0, Number(minPriceInput.value || 0));
   const body = {
     rulesFile: file,
     baseRates: rulesState.baseRates,
@@ -1025,6 +1093,10 @@ function computeOneNightPrice(ds, pid) {
   const weekendPct = Number(rec.weekend_pct || rec.weekendPct || rec.weekend || 0);
   if (isWeekend && weekendPct) price = Math.floor(price * (1 + Math.abs(weekendPct) / 100));
   const globalMin = Number(minPriceInput?.value || 0);
+  // Determine nights reference from LOS that covers 1 night, else lowest min_days, else 2
+  let nightsRef = 2;
+  if (cover && cover.min_days) nightsRef = Math.max(1, Number(cover.min_days));
+  else if (Array.isArray(los) && los.length) nightsRef = Math.max(1, Number(los[0].min_days || 2));
   // Optional: fold cleaning/service fees into nightly using LOS min_stay as amortization
   if (rulesState?.settings?.fold_fees_into_nightly) {
     const includeCleaning = rulesState.settings.fold_include_cleaning != null
@@ -1035,15 +1107,22 @@ function computeOneNightPrice(ds, pid) {
       : true;
     const feesTotal = (includeCleaning ? Number(rec.cleaning_fee || 0) : 0) +
       (includeService ? Number(rec.service_fee || 0) : 0);
-    // pick amortization nights from the LOS that covers 1 night, else lowest min_days or 2
-    let nightsRef = 2;
-    if (cover && cover.min_days) nightsRef = Math.max(1, Number(cover.min_days));
-    else if (Array.isArray(los) && los.length) nightsRef = Math.max(1, Number(los[0].min_days || 2));
     if (feesTotal > 0 && nightsRef > 0) {
       price = price + Math.floor(feesTotal / nightsRef);
     }
   }
-  price = Math.max(price, minRate || 0, globalMin || 0);
+  // Profit-based minimum clamp: uses both fees as cost basis regardless of fold-in toggles
+  const minProfitPct = Number(rec.min_profit_pct || rec.minProfitPct || 0);
+  const profitFeesTotal = Number(rec.cleaning_fee || 0) + Number(rec.service_fee || 0);
+  let profitMin = 0;
+  if (minProfitPct > 0 && profitFeesTotal > 0 && nightsRef > 0) {
+    if (rulesState?.settings?.fold_fees_into_nightly) {
+      profitMin = Math.floor((profitFeesTotal / nightsRef) * (1 + minProfitPct / 100));
+    } else {
+      profitMin = Math.floor((profitFeesTotal / nightsRef) * (minProfitPct / 100));
+    }
+  }
+  price = Math.max(price, minRate || 0, globalMin || 0, profitMin || 0);
   return price;
 }
 

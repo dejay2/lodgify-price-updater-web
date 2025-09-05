@@ -55,6 +55,8 @@ function normalizeRules(r, opts = {}) {
     // Per-property fees
     rec.cleaning_fee = Number(rec.cleaning_fee ?? rec.cleaningFee ?? rec.cleaning ?? 0);
     rec.service_fee = Number(rec.service_fee ?? rec.serviceFee ?? rec.service ?? 0);
+    // Profit-based minimum price percent (per property)
+    rec.min_profit_pct = Number(rec.min_profit_pct ?? rec.minProfitPct ?? 0);
     // Normalize LOS rules array
     let los = Array.isArray(rec.los)
       ? rec.los.map((x) => ({
@@ -182,6 +184,22 @@ function normalizeRules(r, opts = {}) {
     booking_uplift_pct: Number(raw.settings?.booking_uplift_pct ?? 0),
     booking_addon_fee: Math.max(0, Number(raw.settings?.booking_addon_fee ?? 0)),
     oh_addon_fee: Math.max(0, Number(raw.settings?.oh_addon_fee ?? 0)),
+    // Discounts (persisted)
+    window_days: Math.max(
+      0,
+      Number(
+        raw.settings?.window_days ?? raw.settings?.windowDays ?? 30
+      )
+    ),
+    start_discount_pct: Math.max(
+      0,
+      Math.min(100, Number(raw.settings?.start_discount_pct ?? raw.settings?.startDiscountPct ?? 30))
+    ),
+    end_discount_pct: Math.max(
+      0,
+      Math.min(100, Number(raw.settings?.end_discount_pct ?? raw.settings?.endDiscountPct ?? 1))
+    ),
+    min_price: Math.max(0, Number(raw.settings?.min_price ?? raw.settings?.minPrice ?? 0)),
     // Fee fold-in (optional)
     fold_fees_into_nightly: Boolean(raw.settings?.fold_fees_into_nightly || false),
     fold_include_cleaning: raw.settings?.fold_include_cleaning != null
@@ -267,12 +285,27 @@ export function buildRatesFromRules({
   // day entries. Price should be the Base Rate; min/max stay 2..30.
   {
     let defaultPrice = Math.floor(base);
+    const profitFeesTotal = Number(baseCfg.cleaning_fee || 0) + Number(baseCfg.service_fee || 0);
+    const minProfitPct = Math.max(0, Number(baseCfg.min_profit_pct || 0));
+    // Default row uses 2 nights as the amortization reference
+    const defaultNights = 2;
+    // If folding fees into nightly, include fee share; profit clamp always uses both fees
     if (foldEnabled) {
       const feesTotal = (foldIncludeCleaning ? Number(baseCfg.cleaning_fee || 0) : 0) +
         (foldIncludeService ? Number(baseCfg.service_fee || 0) : 0);
-      // Use 2-nights as the default amortization reference
-      defaultPrice = Math.floor(base + (feesTotal > 0 ? feesTotal / 2 : 0));
+      defaultPrice = Math.floor(base + (feesTotal > 0 ? feesTotal / defaultNights : 0));
     }
+    // Apply min clamp(s) to default row as a safety floor
+    const minClampDefault = Math.max(
+      Number(baseCfg.min || 0) || 0,
+      Number(settings?.minPrice || 0) || 0,
+      minProfitPct > 0 && profitFeesTotal > 0
+        ? Math.floor(
+            (profitFeesTotal / defaultNights) * (foldEnabled ? 1 + minProfitPct / 100 : minProfitPct / 100)
+          )
+        : 0
+    );
+    if (minClampDefault && defaultPrice < minClampDefault) defaultPrice = minClampDefault;
     out.push({
       is_default: true,
       price_per_day: defaultPrice,
@@ -373,7 +406,18 @@ export function buildRatesFromRules({
           p = p + Math.floor(feesTotal / nightsRef);
         }
       }
-      if (minClamp && p < minClamp) p = minClamp;
+      // Profit-based minimum clamp (uses both fees as cost basis regardless of fold-in includes)
+      const profitFeesTotal = Number(baseCfg.cleaning_fee || 0) + Number(baseCfg.service_fee || 0);
+      const minProfitPct = Math.max(0, Number(baseCfg.min_profit_pct || 0));
+      let profitMin = 0;
+      if (minProfitPct > 0 && profitFeesTotal > 0) {
+        const nightsRef = Math.max(1, Number(t.min_stay ?? 1));
+        profitMin = Math.floor(
+          (profitFeesTotal / nightsRef) * (foldEnabled ? 1 + minProfitPct / 100 : minProfitPct / 100)
+        );
+      }
+      const finalFloor = Math.max(minClamp || 0, profitMin || 0);
+      if (finalFloor && p < finalFloor) p = finalFloor;
       out.push({
         is_default: false,
         start_date: ds,

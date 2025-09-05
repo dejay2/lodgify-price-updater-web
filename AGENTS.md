@@ -54,7 +54,8 @@ Domain Model (rules summary)
 
 - `baseRates[<propertyId>]` fields (normalized in `src/rules.js`):
   - `base`, `min`, `weekend_pct` (Fri/Sat uplift), `max_discount_pct` (cap for discount curve),
-    `price_per_additional_guest`, `additional_guests_starts_from`, `cleaning_fee`, `service_fee`, optional `los` tiers.
+    `price_per_additional_guest`, `additional_guests_starts_from`, `cleaning_fee`, `service_fee`,
+    `min_profit_pct` (profit-based minimum clamp), optional `los` tiers.
 - `seasons[]`: `{ name, start, end, percent, color }`. Percents add if overlapping.
 - `global_los[]` (optional): shared LOS tiers applied to all properties when present.
 - `overrides[<propertyId>][]`: exact dates with `{ date, price, min_stay?, max_stay? }`.
@@ -71,7 +72,10 @@ Pricing Flow (high level)
    - LOS tier discounts (global or per property), weekend uplift for Fri/Sat.
    - Optional jitter (per‑day percent).
    - Optional Fee Fold‑In: add per‑night share of Cleaning/Service by LOS min_stay.
-   - Final min‑price clamp.
+   - Final min‑price clamp: highest of per‑property `min`, global Minimum Price (Discounts tab),
+     and Profit‑based minimum computed from `(cleaning_fee + service_fee) / LOS.min_stay`:
+       - If fold‑in OFF → multiply by `(min_profit_pct / 100)` (profit only).
+       - If fold‑in ON  → multiply by `(1 + min_profit_pct / 100)` (fees + profit).
 3. Emit Lodgify payload rows with per‑additional‑guest pricing.
 
 Endpoints (server)
