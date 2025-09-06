@@ -554,6 +554,26 @@ app.get('/api/bookings/store', async (_req, res) => {
   }
 });
 
+// --- Jitter logs (latest) ---
+app.get('/api/jitter/last-log', async (_req, res) => {
+  try {
+    const dir = path.join(process.cwd(), 'payload_logs');
+    const entries = await fs.readdir(dir, { withFileTypes: true });
+    const files = entries
+      .filter((e) => e.isFile() && /^jitter_\d{8}_\d{6}\.json$/.test(e.name))
+      .map((e) => e.name)
+      .sort()
+      .reverse();
+    if (!files.length) return res.status(404).json({ error: 'No jitter logs found' });
+    const latest = path.join(dir, files[0]);
+    const txt = await fs.readFile(latest, 'utf-8');
+    const json = JSON.parse(txt);
+    res.json({ file: latest, ...json });
+  } catch (err) {
+    res.status(500).json({ error: err?.message || 'Failed to read jitter log' });
+  }
+});
+
 let jitterTimer = null;
 let jitterIntervalMs = 0;
 async function runJitterOnce() {
@@ -623,6 +643,21 @@ async function runJitterOnce() {
       await fs.mkdir(payloadDir, { recursive: true });
       const ts = nowIso.replaceAll(':', '').replaceAll('-', '').replace('T', '_').slice(0, 15);
       const fname = path.join(payloadDir, `jitter_${ts}.json`);
+      // Build a friendly list of jitter changes with property names
+      const propIndex = new Map(props.map((p) => [String(p.id), p]));
+      const jitterList = [];
+      for (const [pid, map] of Object.entries(jitterMap || {})) {
+        const prop = propIndex.get(String(pid));
+        const propName = prop?.name || `ID ${pid}`;
+        const dates = Object.entries(map || {})
+          .map(([date, pct]) => ({ date, pct }))
+          .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+        jitterList.push({ property_id: Number(pid), property_name: propName, dates });
+      }
+      jitterList.sort((a, b) => String(a.property_name).localeCompare(String(b.property_name)));
+      const failResults = Array.isArray(summary.results)
+        ? summary.results.filter((r) => r.status === 'failed')
+        : [];
       await fs.writeFile(
         fname,
         JSON.stringify(
@@ -632,6 +667,8 @@ async function runJitterOnce() {
             failed: summary.failed,
             skipped: summary.skipped,
             logs: Array.isArray(summary.logs) ? summary.logs : [],
+            jitter: jitterList,
+            failures: failResults,
           },
           null,
           2

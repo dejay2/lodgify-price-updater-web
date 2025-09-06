@@ -20,7 +20,8 @@ function getRoomName(room) {
 export async function runUpdate({ apiKey, settings, postRates, jitterMap = null }) {
   const logs = [];
   const log = (m) => logs.push(`[${new Date().toISOString()}] ${m}`);
-  const summary = { success: 0, failed: 0, skipped: 0, dry_run: 0, logs };
+  const results = [];
+  const summary = { success: 0, failed: 0, skipped: 0, dry_run: 0, logs, results };
 
   log('Fetching properties…');
   const allProps = await fetchProperties(apiKey);
@@ -111,10 +112,19 @@ export async function runUpdate({ apiKey, settings, postRates, jitterMap = null 
       if (status !== 'ok') {
         log(`${propName}/${roomName}: skipped (${status})`);
         summary.skipped += 1;
+        results.push({
+          property_id: pid,
+          room_id: rid,
+          property_name: propName,
+          room_name: roomName,
+          status: 'skipped',
+          reason: status,
+        });
         continue;
       }
 
       const payload = { property_id: pid, room_type_id: rid, rates };
+      let payloadPath = null;
 
       // Save payload for inspection
       try {
@@ -128,6 +138,7 @@ export async function runUpdate({ apiKey, settings, postRates, jitterMap = null 
           .slice(0, 15);
         const fname = path.join(payloadDir, `payload_${ts}_prop${pid}_room${rid}.json`);
         await fs.writeFile(fname, JSON.stringify(payload, null, 2), 'utf-8');
+        payloadPath = fname;
         log(`Saved payload: ${fname}`);
       } catch (e) {
         log(`Failed to write payload file: ${e.message}`);
@@ -136,6 +147,14 @@ export async function runUpdate({ apiKey, settings, postRates, jitterMap = null 
       if (settings.dryRun) {
         log(`${propName}/${roomName}: dry run`);
         summary.dry_run += 1;
+        results.push({
+          property_id: pid,
+          room_id: rid,
+          property_name: propName,
+          room_name: roomName,
+          status: 'dry_run',
+          payload_path: payloadPath,
+        });
         continue;
       }
 
@@ -143,9 +162,27 @@ export async function runUpdate({ apiKey, settings, postRates, jitterMap = null 
         await postRates(apiKey, payload);
         log(`${propName}/${roomName}: updated successfully`);
         summary.success += 1;
+        results.push({
+          property_id: pid,
+          room_id: rid,
+          property_name: propName,
+          room_name: roomName,
+          status: 'success',
+          payload_path: payloadPath,
+        });
       } catch (e) {
         log(`${propName}/${roomName}: update failed - ${e?.response?.status} ${e?.message}`);
         summary.failed += 1;
+        results.push({
+          property_id: pid,
+          room_id: rid,
+          property_name: propName,
+          room_name: roomName,
+          status: 'failed',
+          error_status: e?.response?.status,
+          error_message: e?.message,
+          payload_path: payloadPath,
+        });
       }
     }
   }

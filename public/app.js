@@ -13,6 +13,7 @@ const dryRunBtn = document.getElementById('dryRunBtn');
 const importBookingsBtn = document.getElementById('importBookings');
 const importAllBookingsBtn = document.getElementById('importAllBookings');
 const syncUpdatesBtn = document.getElementById('syncUpdates');
+const showJitterBtn = document.getElementById('showJitter');
 const lastSyncAtInput = document.getElementById('lastSyncAt');
 const propsDiv = document.getElementById('props');
 const logPre = document.getElementById('log');
@@ -408,6 +409,46 @@ syncUpdatesBtn.addEventListener('click', async () => {
   } catch (e) {
     log(`Error syncing updates: ${e.message}`);
     showToast(`Failed to sync: ${e.message}`, 'error', 5000);
+  }
+});
+
+// Show latest jitter status in the Run log
+showJitterBtn?.addEventListener('click', async () => {
+  log('Fetching latest jitter status…');
+  try {
+    const r = await fetch('/api/jitter/last-log');
+    const ct = r.headers.get('content-type') || '';
+    const data = ct.includes('application/json') ? await r.json() : { errorText: await r.text() };
+    if (!r.ok || !ct.includes('application/json')) {
+      const msg = data?.error || data?.errorText?.slice(0, 140) || `HTTP ${r.status}`;
+      throw new Error(msg);
+    }
+    const ts = data.ts || '(unknown time)';
+    log(`Jitter: ts=${ts} success=${data.success} failed=${data.failed} skipped=${data.skipped}`);
+    if (Array.isArray(data.jitter)) {
+      for (const item of data.jitter) {
+        const n = item.property_name || `ID ${item.property_id}`;
+        const dates = Array.isArray(item.dates) ? item.dates : [];
+        if (!dates.length) continue;
+        const parts = dates.map((d) => `${d.date} ${d.pct > 0 ? '+' : ''}${d.pct}%`);
+        log(`Jitter ${n}: ${parts.join(', ')}`);
+      }
+    }
+    if (Array.isArray(data.failures) && data.failures.length) {
+      log(`Failures (${data.failures.length}):`);
+      for (const f of data.failures) {
+        const n = `${f.property_name || f.property_id}/${f.room_name || f.room_id}`;
+        const status = f.error_status != null ? `HTTP ${f.error_status}` : 'error';
+        const msg = f.error_message || '';
+        const path = f.payload_path ? ` (payload: ${f.payload_path})` : '';
+        log(`FAILED ${n}: ${status} ${msg}${path}`);
+      }
+    }
+    if ((!data.jitter || !data.jitter.length) && (!data.failures || !data.failures.length)) {
+      log('No jitter changes or failures recorded in the last run.');
+    }
+  } catch (e) {
+    log(`Error: ${e.message}`);
   }
 });
 
