@@ -166,30 +166,77 @@ export async function runUpdate({
         continue;
       }
 
-      try {
-        await postRates(apiKey, payload);
-        log(`${propName}/${roomName}: updated successfully`);
+      // Try posting; on specific 500s, retry once without any past-dated rows (e.g., lead-in)
+      const postWithRetry = async () => {
+        try {
+          await postRates(apiKey, payload);
+          return { ok: true };
+        } catch (e) {
+          // Collect error details
+          let status = e?.response?.status;
+          let bodySnippet = '';
+          try {
+            const data = e?.response?.data;
+            if (data != null) {
+              const txt = typeof data === 'string' ? data : JSON.stringify(data);
+              bodySnippet = String(txt).slice(0, 240);
+            }
+          } catch {}
+          // Build sanitized payload without any rows that start before startDate
+          // Keep the is_default row
+          const startDate = String(settings.startDate || '');
+          let retried = false;
+          if (status === 500 && startDate) {
+            try {
+              const filtered = Array.isArray(payload.rates)
+                ? payload.rates.filter(
+                    (r) => r.is_default || !r.start_date || r.start_date >= startDate
+                  )
+                : [];
+              if (filtered.length && filtered.length !== payload.rates.length) {
+                retried = true;
+                const payload2 = { ...payload, rates: filtered };
+                await postRates(apiKey, payload2);
+                return { ok: true, retried: true };
+              }
+            } catch (e2) {
+              // Return original error details if retry also fails
+              let status2 = e2?.response?.status;
+              let bodySnippet2 = '';
+              try {
+                const data2 = e2?.response?.data;
+                if (data2 != null) {
+                  const txt2 = typeof data2 === 'string' ? data2 : JSON.stringify(data2);
+                  bodySnippet2 = String(txt2).slice(0, 240);
+                }
+              } catch {}
+              return {
+                ok: false,
+                status: status2 || status,
+                bodySnippet: bodySnippet2 || bodySnippet,
+              };
+            }
+          }
+          return { ok: false, status, bodySnippet };
+        }
+      };
+
+      const res = await postWithRetry();
+      if (res.ok) {
+        const note = res.retried ? ' (after dropping past-dated rows)' : '';
+        log(`${propName}/${roomName}: updated successfully${note}`);
         summary.success += 1;
         results.push({
           property_id: pid,
           room_id: rid,
           property_name: propName,
           room_name: roomName,
-          status: 'success',
+          status: res.retried ? 'success_retry' : 'success',
           payload_path: payloadPath,
         });
-      } catch (e) {
-        let bodySnippet = '';
-        try {
-          const data = e?.response?.data;
-          if (data != null) {
-            const txt = typeof data === 'string' ? data : JSON.stringify(data);
-            bodySnippet = ` body=${String(txt).slice(0, 240)}`;
-          }
-        } catch {}
-        log(
-          `${propName}/${roomName}: update failed - ${e?.response?.status} ${e?.message}${bodySnippet}`
-        );
+      } else {
+        const bodySuffix = res.bodySnippet ? ` body=${res.bodySnippet}` : '';
+        log(`${propName}/${roomName}: update failed - ${res.status} ${bodySuffix}`);
         summary.failed += 1;
         results.push({
           property_id: pid,
@@ -197,9 +244,9 @@ export async function runUpdate({
           property_name: propName,
           room_name: roomName,
           status: 'failed',
-          error_status: e?.response?.status,
-          error_message: e?.message,
-          error_body_snippet: bodySnippet,
+          error_status: res.status,
+          error_message: 'post failed',
+          error_body_snippet: bodySuffix,
           payload_path: payloadPath,
         });
       }
