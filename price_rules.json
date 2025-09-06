@@ -458,6 +458,12 @@
       }
     ]
   },
+  "blocked": {
+    "327020": [],
+    "327168": [
+      "2025-09-07"
+    ]
+  },
   "settings": {
     "override_color": "#e1ff00",
     "auto_jitter_enabled": true,

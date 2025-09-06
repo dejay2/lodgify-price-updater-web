@@ -59,6 +59,7 @@ Domain Model (rules summary)
 - `seasons[]`: `{ name, start, end, percent, color }`. Percents add if overlapping.
 - `global_los[]` (optional): shared LOS tiers applied to all properties when present.
 - `overrides[<propertyId>][]`: exact dates with `{ date, price, min_stay?, max_stay? }`.
+- `blocked[<propertyId>][]`: array of exact dates `YYYY-MM-DD` to block. For each blocked date, the payload includes a one‑day row with an impossible `min_stay` (1000) so bookings cannot start that day.
 - `settings`: UI + scheduler options including `override_color`, `auto_jitter_enabled`, jitter parameters, and channel fee/uplift sliders used by the calendar tooltip.
   - Optional Fee Fold‑In: `fold_fees_into_nightly` (bool), `fold_include_cleaning` (bool), `fold_include_service` (bool).
   - Optional Lead‑In Price (Yesterday): `historic_lead_in_enabled` (bool), `historic_lead_in_price` (number). When enabled, appends a single one‑day rate row for yesterday at the fixed price in every payload, to influence channel “from” price displays. Not shown in calendar preview.
@@ -67,6 +68,7 @@ Pricing Flow (high level)
 
 1. Build a required default Lodgify rate row (`is_default: true`) with the Base Rate and min/max stay 2..30.
 2. Iterate dates from start..end (inclusive), applying:
+   - Blocked dates — emit a one‑day rate block with `min_stay = 1000` and skip other rules for that day.
    - Overrides (if any) — take precedence and emit one‑day rate block.
    - Season percent adjustments.
    - Discount window curve (start→end %) capped by `max_discount_pct` (if > 0).

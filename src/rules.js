@@ -19,7 +19,13 @@ export async function loadRules(file) {
     const data = JSON.parse(t);
     return normalizeRules(data);
   } catch {
-    return { baseRates: {}, seasons: [], overrides: {}, settings: { override_color: '#ffd1dc' } };
+    return {
+      baseRates: {},
+      seasons: [],
+      overrides: {},
+      blocked: {},
+      settings: { override_color: '#ffd1dc' },
+    };
   }
 }
 
@@ -163,6 +169,42 @@ function normalizeRules(r, opts = {}) {
         .filter((o) => typeof o.date === 'string' && o.date.length === 10 && o.price > 0);
     }
   }
+  // Blocked dates per property: normalized to an array of YYYY-MM-DD strings per property
+  const blocked = {};
+  if (raw.blocked && typeof raw.blocked === 'object') {
+    const ymd = (d) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const expandRange = (startStr, endStr) => {
+      try {
+        const out = [];
+        if (!startStr || !endStr) return out;
+        const s = new Date(startStr + 'T00:00:00');
+        const e = new Date(endStr + 'T00:00:00');
+        if (isNaN(s) || isNaN(e)) return out;
+        for (let d = new Date(s); d <= e; d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1)) {
+          out.push(ymd(d));
+        }
+        return out;
+      } catch {
+        return [];
+      }
+    };
+    for (const pid of Object.keys(raw.blocked)) {
+      const list = Array.isArray(raw.blocked[pid]) ? raw.blocked[pid] : [];
+      const dates = new Set();
+      for (const item of list) {
+        if (typeof item === 'string') {
+          if (item.length === 10) dates.add(item);
+        } else if (item && typeof item === 'object') {
+          if (typeof item.date === 'string' && item.date.length === 10) dates.add(item.date);
+          else if (item.start && item.end) {
+            for (const d of expandRange(item.start, item.end)) dates.add(d);
+          }
+        }
+      }
+      blocked[pid] = Array.from(dates).sort();
+    }
+  }
   const settings = {
     override_color:
       typeof raw.settings?.override_color === 'string' ? raw.settings.override_color : '#ffd1dc',
@@ -223,7 +265,7 @@ function normalizeRules(r, opts = {}) {
       Number(raw.settings?.historic_lead_in_days_back ?? raw.settings?.historicLeadInDaysBack ?? 1)
     ),
   };
-  return { baseRates, seasons, overrides, settings, global_los };
+  return { baseRates, seasons, overrides, blocked, settings, global_los };
 }
 
 export function seasonPercentForDate(date, seasons) {
@@ -297,6 +339,7 @@ export function buildRatesFromRules({
   const ymd = (d) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const nextDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+  const BLOCK_MIN_STAY = 1000; // used to effectively block arrivals
 
   // Default catch-all rate must be first. Lodgify requires an is_default=true
   // entry without dates. This is used for any dates not covered by specific
@@ -397,8 +440,37 @@ export function buildRatesFromRules({
   // iterate days inclusive using local dates
   const s = new Date(startDate + 'T00:00:00');
   const e = new Date(endDate + 'T00:00:00');
+  // Build a quick lookup for blocked dates for this property
+  const blockedDatesSet = (() => {
+    try {
+      const arr = (rules && rules.blocked && (rules.blocked[String(propId)] || rules.blocked[propId])) || [];
+      return new Set(Array.isArray(arr) ? arr : []);
+    } catch {
+      return new Set();
+    }
+  })();
   for (let d = new Date(s); d <= e; d = nextDay(d)) {
     const ds = ymd(d);
+    // Blocked dates: emit a one-day row with an impossible min_stay and skip normal tiers
+    if (blockedDatesSet.has(ds)) {
+      const de = ymd(nextDay(d));
+      const row = {
+        is_default: false,
+        start_date: ds,
+        end_date: de,
+        price_per_day: Math.max(1, Math.floor(base)),
+        min_stay: BLOCK_MIN_STAY,
+        max_stay: BLOCK_MIN_STAY,
+      };
+      const addlPrice = Number(baseCfg.price_per_additional_guest || 0);
+      const addlFrom = Number(baseCfg.additional_guests_starts_from || 0);
+      if (addlPrice > 0 && addlFrom > 0) {
+        row.price_per_additional_guest = addlPrice;
+        row.additional_guests_starts_from = addlFrom;
+      }
+      out.push(row);
+      continue;
+    }
     // Overrides take precedence
     const ovrList =
       (rules.overrides && (rules.overrides[String(propId)] || rules.overrides[propId])) || [];

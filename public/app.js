@@ -109,7 +109,7 @@ function headers() {
 
 // Properties cache for rules select and run selection
 let allPropsCache = [];
-let rulesState = { baseRates: {}, seasons: [] };
+let rulesState = { baseRates: {}, seasons: [], overrides: {}, blocked: {}, settings: {} };
 const appReady = { props: false, rules: false };
 
 function renderOrchestrator() {
@@ -570,8 +570,9 @@ async function loadRules() {
   const qs = new URLSearchParams({ rulesFile: file }).toString();
   const r = await fetch(`/api/rules?${qs}`);
   const data = await r.json();
-  rulesState = data || { baseRates: {}, seasons: [], overrides: {}, settings: {} };
+  rulesState = data || { baseRates: {}, seasons: [], overrides: {}, blocked: {}, settings: {} };
   if (!rulesState.overrides) rulesState.overrides = {};
+  if (!rulesState.blocked) rulesState.blocked = {};
   if (!rulesState.settings) rulesState.settings = {};
   if (overrideColorInput)
     overrideColorInput.value = rulesState.settings.override_color || '#ffd1dc';
@@ -771,6 +772,7 @@ async function saveRules() {
     baseRates: rulesState.baseRates,
     seasons: rulesState.seasons,
     overrides: rulesState.overrides || {},
+    blocked: rulesState.blocked || {},
     settings: rulesState.settings,
     global_los: Array.isArray(rulesState.global_los) ? rulesState.global_los : [],
   };
@@ -903,6 +905,8 @@ const ovrSave = document.getElementById('ovrSave');
 const ovrDelete = document.getElementById('ovrDelete');
 const ovrCancel = document.getElementById('ovrCancel');
 const ovrLosHint = document.getElementById('ovrLosHint');
+const ovrBlock = document.getElementById('ovrBlock');
+const ovrUnblock = document.getElementById('ovrUnblock');
 
 // --- Bookings cache (for calendar display) ---
 let bookingsCache = null; // { items: [...], count, ... }
@@ -1333,6 +1337,8 @@ function renderCalendar() {
         // Flags
         const olist = rulesState.overrides?.[pid] || [];
         const hasOverride = Array.isArray(olist) ? olist.some((o) => o.date === ds) : false;
+        const blockedArr = (rulesState.blocked && rulesState.blocked[pid]) || [];
+        const isBlocked = Array.isArray(blockedArr) ? blockedArr.includes(ds) : false;
         const day = cellDate.getDay();
         const isWeekend = day === 5 || day === 6;
         const today = new Date();
@@ -1340,6 +1346,7 @@ function renderCalendar() {
         if (isWeekend) cell.classList.add('weekend');
         if (ds === todayStr) cell.classList.add('today');
         if (hasOverride) cell.classList.add('override');
+        if (isBlocked) cell.classList.add('blocked');
         // Background: override color > season color > derived shade
         if (hasOverride) {
           const baseCol = rulesState.settings?.override_color || '#ffd1dc';
@@ -1355,9 +1362,15 @@ function renderCalendar() {
         }
         const priceEl = document.createElement('div');
         priceEl.className = 'cal-price';
-        const p = computeOneNightPrice(ds, pid);
-        priceEl.innerHTML =
-          p !== '' ? `<span class="pill">£${p}</span>` : '<span class="pill">—</span>';
+        if (isBlocked) {
+          priceEl.innerHTML = '<span class="pill pill-blocked">Blocked</span>';
+          priceEl.title = 'Blocked by rules';
+          try { cell.title = priceEl.title; } catch {}
+        } else {
+          const p = computeOneNightPrice(ds, pid);
+          priceEl.innerHTML =
+            p !== '' ? `<span class="pill">£${p}</span>` : '<span class="pill">—</span>';
+        }
         // Price breakdown tooltip
         try {
           const bd = computeOneNightBreakdown(ds, pid);
@@ -1391,7 +1404,7 @@ function renderCalendar() {
           } else if (bd?.note) {
             title = bd.note;
           }
-          if (title) {
+          if (!isBlocked && title) {
             priceEl.title = title;
             // Also attach to the whole cell so hover anywhere shows it
             try { cell.title = title; } catch {}
@@ -1618,6 +1631,20 @@ function openOverrideModal(ds) {
     closeOverrideModal();
     renderCalendar();
   };
+  if (ovrBlock) ovrBlock.onclick = async () => {
+    blockDates(pid, ds);
+    await saveRules().catch((e) => showToast(e.message, 'error'));
+    showToast('Date blocked', 'success');
+    closeOverrideModal();
+    renderCalendar();
+  };
+  if (ovrUnblock) ovrUnblock.onclick = async () => {
+    unblockDates(pid, ds);
+    await saveRules().catch((e) => showToast(e.message, 'error'));
+    showToast('Date unblocked', 'success');
+    closeOverrideModal();
+    renderCalendar();
+  };
   ovrDelete.onclick = async () => {
     const idx = list.findIndex((o) => o.date === ds);
     if (idx >= 0) list.splice(idx, 1);
@@ -1742,6 +1769,20 @@ function openRangeOverrideModal(dateList) {
     closeOverrideModal();
     renderCalendar();
   };
+  if (ovrBlock) ovrBlock.onclick = async () => {
+    blockDates(pid, sorted);
+    await saveRules().catch((e) => showToast(e.message, 'error'));
+    showToast(`Blocked ${sorted.length} day(s)`, 'success');
+    closeOverrideModal();
+    renderCalendar();
+  };
+  if (ovrUnblock) ovrUnblock.onclick = async () => {
+    unblockDates(pid, sorted);
+    await saveRules().catch((e) => showToast(e.message, 'error'));
+    showToast(`Unblocked ${sorted.length} day(s)`, 'success');
+    closeOverrideModal();
+    renderCalendar();
+  };
   ovrDelete.onclick = async () => {
     for (const ds of sorted) {
       const idx = list.findIndex((o) => o.date === ds);
@@ -1765,6 +1806,27 @@ function openRangeOverrideModal(dateList) {
 function closeOverrideModal() {
   overrideModal.classList.remove('show');
   overrideModal.setAttribute('aria-hidden', 'true');
+}
+
+// --- Blocked dates helpers ---
+function getBlockedListFor(pid) {
+  if (!rulesState.blocked) rulesState.blocked = {};
+  if (!Array.isArray(rulesState.blocked[pid])) rulesState.blocked[pid] = [];
+  return rulesState.blocked[pid];
+}
+function blockDates(pid, dates) {
+  const list = getBlockedListFor(pid);
+  const set = new Set(list);
+  const src = Array.isArray(dates) ? dates : [dates];
+  for (const ds of src) {
+    if (typeof ds === 'string' && ds.length === 10) set.add(ds);
+  }
+  rulesState.blocked[pid] = Array.from(set).sort();
+}
+function unblockDates(pid, dates) {
+  const remove = new Set(Array.isArray(dates) ? dates : [dates]);
+  const list = getBlockedListFor(pid).filter((d) => !remove.has(d));
+  rulesState.blocked[pid] = list;
 }
 
 // Keep rules file inputs in sync (3 fields)

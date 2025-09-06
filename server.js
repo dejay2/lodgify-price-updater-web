@@ -224,6 +224,7 @@ app.post('/api/rules', async (req, res) => {
       baseRates: body.baseRates,
       seasons: body.seasons,
       overrides: body.overrides || {},
+      blocked: body.blocked || {},
       settings: body.settings || {},
       global_los: incomingGlobalLos,
     });
