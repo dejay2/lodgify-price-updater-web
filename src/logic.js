@@ -179,7 +179,17 @@ export async function runUpdate({
           payload_path: payloadPath,
         });
       } catch (e) {
-        log(`${propName}/${roomName}: update failed - ${e?.response?.status} ${e?.message}`);
+        let bodySnippet = '';
+        try {
+          const data = e?.response?.data;
+          if (data != null) {
+            const txt = typeof data === 'string' ? data : JSON.stringify(data);
+            bodySnippet = ` body=${String(txt).slice(0, 240)}`;
+          }
+        } catch {}
+        log(
+          `${propName}/${roomName}: update failed - ${e?.response?.status} ${e?.message}${bodySnippet}`
+        );
         summary.failed += 1;
         results.push({
           property_id: pid,
@@ -189,6 +199,7 @@ export async function runUpdate({
           status: 'failed',
           error_status: e?.response?.status,
           error_message: e?.message,
+          error_body_snippet: bodySnippet,
           payload_path: payloadPath,
         });
       }
