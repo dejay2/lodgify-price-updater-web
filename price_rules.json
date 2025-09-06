@@ -64,7 +64,7 @@
     },
     "327021": {
       "base": 356,
-      "min": 1,
+      "min": 10,
       "los": [
         {
           "name": "Default 2-6 nights",
@@ -144,7 +144,7 @@
     },
     "327178": {
       "base": 275,
-      "min": 1,
+      "min": 10,
       "los": [
         {
           "name": "Default 2-6 nights",
@@ -357,8 +357,8 @@
       {
         "date": "2025-12-31",
         "price": 750,
-        "min_stay": null,
-        "max_stay": null
+        "min_stay": 2,
+        "max_stay": 6
       },
       {
         "date": "2026-12-31",
@@ -410,12 +410,6 @@
       }
     ],
     "327178": [
-      {
-        "date": "2025-11-27",
-        "price": 100,
-        "min_stay": null,
-        "max_stay": null
-      },
       {
         "date": "2025-12-31",
         "price": 500,

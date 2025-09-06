@@ -366,8 +366,8 @@ export function buildRatesFromRules({
         start_date: ds,
         end_date: de,
         price_per_day: Math.floor(leadInPrice),
-        min_stay: 2,
-        max_stay: 2,
+        min_stay: 1,
+        max_stay: 1,
       };
       const addlPrice = Number(baseCfg.price_per_additional_guest || 0);
       const addlFrom = Number(baseCfg.additional_guests_starts_from || 0);

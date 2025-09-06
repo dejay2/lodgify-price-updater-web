@@ -26,7 +26,7 @@ all_bookings.json
 bookings_sync.json
 *.log
 data/
-
+CLAUDE.md
 # OS / editor
 .DS_Store
 Thumbs.db

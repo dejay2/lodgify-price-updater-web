@@ -1186,6 +1186,101 @@ function computeOneNightPrice(ds, pid) {
   return price;
 }
 
+// Build a price breakdown for tooltip: Base → Seasons → Discount → LOS → Weekend → Fees → Min clamp → Final
+function computeOneNightBreakdown(ds, pid) {
+  const rec = rulesState.baseRates[pid] || {};
+  const base = Number(rec.base || 0);
+  if (!base) return { note: 'No base rate', final: null };
+
+  // Overrides are final and bypass all math
+  const olist = rulesState.overrides?.[pid] || [];
+  const ovr = Array.isArray(olist) ? olist.find((o) => o.date === ds) : null;
+  if (ovr && ovr.price > 0) {
+    return {
+      override: { price: Math.floor(Number(ovr.price)), min_stay: ovr.min_stay ?? null, max_stay: ovr.max_stay ?? null },
+      final: Math.floor(Number(ovr.price)),
+    };
+  }
+
+  const minRate = Number(rec.min || 0);
+  const globalMin = Number(minPriceInput?.value || 0);
+
+  // Seasons
+  const seasonPct = getSeasonPctForDate(ds);
+  const afterSeason = Math.floor(base * (1 + seasonPct / 100));
+
+  // Discount window (0..1), with per‑property cap
+  const discPctRaw = computeDiscountPctLocal({
+    date: ds,
+    windowDays: Number(windowDaysInput?.value || 30),
+    startDiscountPct: Number(startDiscountPctInput?.value || 30),
+    endDiscountPct: Number(endDiscountPctInput?.value || 1),
+  });
+  const maxDiscPct = Number(rec.max_discount_pct || rec.maxDiscountPct || 0);
+  const discPctCapped = maxDiscPct > 0 ? Math.min(discPctRaw, Math.max(0, Math.min(1, maxDiscPct / 100))) : discPctRaw;
+  const afterDiscount = discPctCapped ? Math.floor(afterSeason * (1 - discPctCapped)) : afterSeason;
+
+  // LOS for 1 night (preview)
+  const los =
+    Array.isArray(rulesState.global_los) && rulesState.global_los.length
+      ? rulesState.global_los
+      : Array.isArray(rec.los)
+        ? rec.los
+        : [];
+  const losSorted = los.slice().sort((a, b) => (a.min_days ?? 0) - (b.min_days ?? 0));
+  const losCover = losSorted.find((r) => (r.min_days ?? 1) <= 1 && (r.max_days == null || r.max_days >= 1)) || null;
+  const losPct = losCover ? -Math.abs(Number(losCover.percent || 0)) : 0;
+  const afterLos = losPct ? Math.floor(afterDiscount * (1 + losPct / 100)) : afterDiscount;
+
+  // Weekend uplift
+  const d = new Date(ds + 'T00:00:00');
+  const day = d.getDay();
+  const isWeekend = day === 5 || day === 6;
+  const weekendPct = isWeekend ? Math.abs(Number(rec.weekend_pct || rec.weekendPct || rec.weekend || 0)) : 0;
+  const afterWeekend = weekendPct ? Math.floor(afterLos * (1 + weekendPct / 100)) : afterLos;
+
+  // Fee fold‑in
+  const foldEnabled = !!rulesState?.settings?.fold_fees_into_nightly;
+  const includeCleaning = rulesState?.settings?.fold_include_cleaning != null ? !!rulesState.settings.fold_include_cleaning : true;
+  const includeService = rulesState?.settings?.fold_include_service != null ? !!rulesState.settings.fold_include_service : true;
+  const feesTotalIncluded = (includeCleaning ? Number(rec.cleaning_fee || 0) : 0) + (includeService ? Number(rec.service_fee || 0) : 0);
+  // Nights reference from LOS tier that covers 1 night, else first tier min, else 2
+  let nightsRef = 2;
+  if (losCover?.min_days) nightsRef = Math.max(1, Number(losCover.min_days));
+  else if (losSorted.length) nightsRef = Math.max(1, Number(losSorted[0].min_days || 2));
+  const feesPerNight = foldEnabled && feesTotalIncluded > 0 && nightsRef > 0 ? Math.floor(feesTotalIncluded / nightsRef) : 0;
+  const afterFees = afterWeekend + feesPerNight;
+
+  // Profit‑based minimum
+  const minProfitPct = Number(rec.min_profit_pct || rec.minProfitPct || 0);
+  const profitFeesTotal = Number(rec.cleaning_fee || 0) + Number(rec.service_fee || 0);
+  let profitMin = 0;
+  if (minProfitPct > 0 && profitFeesTotal > 0 && nightsRef > 0) {
+    profitMin = Math.floor((profitFeesTotal / nightsRef) * (foldEnabled ? 1 + minProfitPct / 100 : minProfitPct / 100));
+  }
+
+  const prelim = afterFees;
+  const final = Math.max(prelim, minRate || 0, globalMin || 0, profitMin || 0);
+
+  return {
+    base,
+    seasonPct,
+    afterSeason,
+    discountPctApplied: Math.round(discPctCapped * 1000) / 10, // one decimal percent
+    afterDiscount,
+    los: losCover ? { name: losCover.name || '', pct: losPct, min_days: losCover.min_days, max_days: losCover.max_days } : null,
+    afterLos,
+    weekendPct,
+    afterWeekend,
+    foldEnabled,
+    fees: { includeCleaning, includeService, totalIncluded: feesTotalIncluded, nightsRef, perNight: feesPerNight },
+    afterFees,
+    floors: { minRate, globalMin, profitMin },
+    final,
+    jitterPct: 0,
+  };
+}
+
 function seasonColor(pct) {
   // map -20..+40% to color shades; low=light, high=deeper
   const clamped = Math.max(-20, Math.min(40, pct));
@@ -1263,6 +1358,45 @@ function renderCalendar() {
         const p = computeOneNightPrice(ds, pid);
         priceEl.innerHTML =
           p !== '' ? `<span class="pill">£${p}</span>` : '<span class="pill">—</span>';
+        // Price breakdown tooltip
+        try {
+          const bd = computeOneNightBreakdown(ds, pid);
+          const fmt = (n) => `£${Math.floor(Number(n || 0))}`;
+          let title = '';
+          if (bd?.override) {
+            const parts = [`Override: ${fmt(bd.override.price)}`];
+            if (bd.override.min_stay != null) parts.push(`min_stay=${bd.override.min_stay}`);
+            if (bd.override.max_stay != null) parts.push(`max_stay=${bd.override.max_stay}`);
+            title = parts.join(' · ');
+          } else if (bd && bd.final != null) {
+            const lines = [];
+            lines.push(`Base: ${fmt(bd.base)}`);
+            if (bd.seasonPct) lines.push(`Seasons: ${bd.seasonPct > 0 ? '+' : ''}${bd.seasonPct}% → ${fmt(bd.afterSeason)}`);
+            if (bd.discountPctApplied) lines.push(`Discount: -${bd.discountPctApplied}% → ${fmt(bd.afterDiscount)}`);
+            if (bd.los) lines.push(`LOS ${bd.los.min_days}${bd.los.max_days ? '-' + bd.los.max_days : '+'}: ${bd.los.pct}% → ${fmt(bd.afterLos)}`);
+            if (bd.weekendPct) lines.push(`Weekend: +${bd.weekendPct}% → ${fmt(bd.afterWeekend)}`);
+            if (bd.foldEnabled && bd.fees?.perNight) {
+              const inc = [];
+              if (bd.fees.includeCleaning) inc.push('cleaning');
+              if (bd.fees.includeService) inc.push('service');
+              lines.push(`Fees (${inc.join('+')}): +${fmt(bd.fees.perNight)} (nights=${bd.fees.nightsRef}) → ${fmt(bd.afterFees)}`);
+            }
+            const floors = [];
+            if (bd.floors?.minRate) floors.push(`per‑prop ${fmt(bd.floors.minRate)}`);
+            if (bd.floors?.globalMin) floors.push(`global ${fmt(bd.floors.globalMin)}`);
+            if (bd.floors?.profitMin) floors.push(`profit ${fmt(bd.floors.profitMin)}`);
+            if (floors.length) lines.push(`Min floors: ${floors.join(', ')}`);
+            lines.push(`Final: ${fmt(bd.final)}`);
+            title = lines.join('\n');
+          } else if (bd?.note) {
+            title = bd.note;
+          }
+          if (title) {
+            priceEl.title = title;
+            // Also attach to the whole cell so hover anywhere shows it
+            try { cell.title = title; } catch {}
+          }
+        } catch {}
         // LOS indicator: colored dot if a second LOS tier exists
         const rec = rulesState.baseRates[pid] || {};
         const los =

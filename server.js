@@ -2,7 +2,7 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
-import bodyParser from 'body-parser';
+// Use built-in JSON parsing
 
 import { fetchProperties, postRates } from './src/lodgify.js';
 import { runUpdate } from './src/logic.js';
@@ -89,7 +89,7 @@ async function setActiveRulesFile(file) {
   await writeAppState({ activeRulesFile: file || 'price_rules.json' });
 }
 
-app.use(bodyParser.json({ limit: '1mb' }));
+app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Health
@@ -458,7 +458,8 @@ async function readBookingsStore() {
 }
 async function writeBookingsStore(store) {
   const p = path.join(__dirname, 'bookings_store.json');
-  await fs.writeFile(p, JSON.stringify(store, null, 2), 'utf-8');
+  // Atomic write to avoid corruption on crashes
+  await writeJsonAtomic(p, store);
 }
 function normDate(s) {
   return typeof s === 'string' && s.length >= 10 ? s.slice(0, 10) : null;
