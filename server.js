@@ -632,6 +632,7 @@ async function runJitterOnce() {
       settings,
       postRates,
       jitterMap,
+      savePayloads: false, // do not save per-room payloads for jitter runs
     });
     const nowIso = new Date().toISOString();
     console.log(

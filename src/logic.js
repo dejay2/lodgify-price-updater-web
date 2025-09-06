@@ -17,7 +17,13 @@ function getRoomName(room) {
 
 // Baseline/calendar pricing removed — rules-only mode
 
-export async function runUpdate({ apiKey, settings, postRates, jitterMap = null }) {
+export async function runUpdate({
+  apiKey,
+  settings,
+  postRates,
+  jitterMap = null,
+  savePayloads = true,
+}) {
   const logs = [];
   const log = (m) => logs.push(`[${new Date().toISOString()}] ${m}`);
   const results = [];
@@ -126,22 +132,24 @@ export async function runUpdate({ apiKey, settings, postRates, jitterMap = null 
       const payload = { property_id: pid, room_type_id: rid, rates };
       let payloadPath = null;
 
-      // Save payload for inspection
-      try {
-        const payloadDir = path.join(process.cwd(), 'payload_logs');
-        await fs.mkdir(payloadDir, { recursive: true });
-        const ts = new Date()
-          .toISOString()
-          .replaceAll(':', '')
-          .replaceAll('-', '')
-          .replace('T', '_')
-          .slice(0, 15);
-        const fname = path.join(payloadDir, `payload_${ts}_prop${pid}_room${rid}.json`);
-        await fs.writeFile(fname, JSON.stringify(payload, null, 2), 'utf-8');
-        payloadPath = fname;
-        log(`Saved payload: ${fname}`);
-      } catch (e) {
-        log(`Failed to write payload file: ${e.message}`);
+      // Save payload for inspection (skip if disabled, e.g., auto-jitter)
+      if (savePayloads) {
+        try {
+          const payloadDir = path.join(process.cwd(), 'payload_logs');
+          await fs.mkdir(payloadDir, { recursive: true });
+          const ts = new Date()
+            .toISOString()
+            .replaceAll(':', '')
+            .replaceAll('-', '')
+            .replace('T', '_')
+            .slice(0, 15);
+          const fname = path.join(payloadDir, `payload_${ts}_prop${pid}_room${rid}.json`);
+          await fs.writeFile(fname, JSON.stringify(payload, null, 2), 'utf-8');
+          payloadPath = fname;
+          log(`Saved payload: ${fname}`);
+        } catch (e) {
+          log(`Failed to write payload file: ${e.message}`);
+        }
       }
 
       if (settings.dryRun) {
