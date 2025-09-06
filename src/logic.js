@@ -166,13 +166,13 @@ export async function runUpdate({
         continue;
       }
 
-      // Try posting; on specific 500s, retry once without any past-dated rows (e.g., lead-in)
+      // Try posting; on 500s, progressively retry with safer payloads
       const postWithRetry = async () => {
+        // Attempt 0: original payload
         try {
           await postRates(apiKey, payload);
           return { ok: true };
         } catch (e) {
-          // Collect error details
           let status = e?.response?.status;
           let bodySnippet = '';
           try {
@@ -182,48 +182,94 @@ export async function runUpdate({
               bodySnippet = String(txt).slice(0, 240);
             }
           } catch {}
-          // Build sanitized payload without any rows that start before startDate
-          // Keep the is_default row
-          const startDate = String(settings.startDate || '');
-          let retried = false;
-          if (status === 500 && startDate) {
+
+          // Attempt 1: drop past-dated rows (keep is_default)
+          const startDateStr = String(settings.startDate || '');
+          if (status === 500 && startDateStr) {
             try {
               const filtered = Array.isArray(payload.rates)
                 ? payload.rates.filter(
-                    (r) => r.is_default || !r.start_date || r.start_date >= startDate
+                    (r) => r.is_default || !r.start_date || r.start_date >= startDateStr
                   )
                 : [];
               if (filtered.length && filtered.length !== payload.rates.length) {
-                retried = true;
                 const payload2 = { ...payload, rates: filtered };
                 await postRates(apiKey, payload2);
-                return { ok: true, retried: true };
+                return { ok: true, retried: true, mode: 'drop_past' };
               }
             } catch (e2) {
-              // Return original error details if retry also fails
-              let status2 = e2?.response?.status;
-              let bodySnippet2 = '';
+              status = e2?.response?.status || status;
               try {
-                const data2 = e2?.response?.data;
-                if (data2 != null) {
-                  const txt2 = typeof data2 === 'string' ? data2 : JSON.stringify(data2);
-                  bodySnippet2 = String(txt2).slice(0, 240);
+                const d2 = e2?.response?.data;
+                if (d2 != null) {
+                  const t2 = typeof d2 === 'string' ? d2 : JSON.stringify(d2);
+                  bodySnippet = String(t2).slice(0, 240) || bodySnippet;
                 }
               } catch {}
-              return {
-                ok: false,
-                status: status2 || status,
-                bodySnippet: bodySnippet2 || bodySnippet,
-              };
             }
           }
+
+          // Attempt 2: strip additional-guest fields from all rows
+          if (status === 500) {
+            try {
+              const stripAddl = (r) => {
+                const { price_per_additional_guest, additional_guests_starts_from, ...rest } =
+                  r || {};
+                return rest;
+              };
+              const payload3 = {
+                ...payload,
+                rates: Array.isArray(payload.rates) ? payload.rates.map(stripAddl) : [],
+              };
+              await postRates(apiKey, payload3);
+              return { ok: true, retried: true, mode: 'strip_addl' };
+            } catch (e3) {
+              status = e3?.response?.status || status;
+              try {
+                const d3 = e3?.response?.data;
+                if (d3 != null) {
+                  const t3 = typeof d3 === 'string' ? d3 : JSON.stringify(d3);
+                  bodySnippet = String(t3).slice(0, 240) || bodySnippet;
+                }
+              } catch {}
+            }
+          }
+
+          // Attempt 3: default row only
+          if (status === 500) {
+            try {
+              const onlyDefault = Array.isArray(payload.rates)
+                ? payload.rates.filter((r) => r.is_default)
+                : [];
+              if (onlyDefault.length) {
+                const payload4 = { ...payload, rates: onlyDefault };
+                await postRates(apiKey, payload4);
+                return { ok: true, retried: true, mode: 'default_only' };
+              }
+            } catch (e4) {
+              status = e4?.response?.status || status;
+              try {
+                const d4 = e4?.response?.data;
+                if (d4 != null) {
+                  const t4 = typeof d4 === 'string' ? d4 : JSON.stringify(d4);
+                  bodySnippet = String(t4).slice(0, 240) || bodySnippet;
+                }
+              } catch {}
+            }
+          }
+
           return { ok: false, status, bodySnippet };
         }
       };
 
       const res = await postWithRetry();
       if (res.ok) {
-        const note = res.retried ? ' (after dropping past-dated rows)' : '';
+        let note = '';
+        if (res.retried) {
+          if (res.mode === 'strip_addl') note = ' (after stripping additional-guest fields)';
+          else if (res.mode === 'default_only') note = ' (default row only)';
+          else note = ' (after dropping past-dated rows)';
+        }
         log(`${propName}/${roomName}: updated successfully${note}`);
         summary.success += 1;
         results.push({
@@ -231,7 +277,7 @@ export async function runUpdate({
           room_id: rid,
           property_name: propName,
           room_name: roomName,
-          status: res.retried ? 'success_retry' : 'success',
+          status: res.retried ? `success_retry:${res.mode || 'drop_past'}` : 'success',
           payload_path: payloadPath,
         });
       } else {

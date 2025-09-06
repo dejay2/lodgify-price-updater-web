@@ -326,14 +326,19 @@ export function buildRatesFromRules({
         : 0
     );
     if (minClampDefault && defaultPrice < minClampDefault) defaultPrice = minClampDefault;
-    out.push({
+    const row = {
       is_default: true,
       price_per_day: defaultPrice,
       min_stay: 2,
       max_stay: 30,
-      price_per_additional_guest: Number(baseCfg.price_per_additional_guest || 0),
-      additional_guests_starts_from: Number(baseCfg.additional_guests_starts_from || 0),
-    });
+    };
+    const addlPrice = Number(baseCfg.price_per_additional_guest || 0);
+    const addlFrom = Number(baseCfg.additional_guests_starts_from || 0);
+    if (addlPrice > 0 && addlFrom > 0) {
+      row.price_per_additional_guest = addlPrice;
+      row.additional_guests_starts_from = addlFrom;
+    }
+    out.push(row);
   }
 
   // Historic lead-in price: immediately follow the default row so payload stays in date order
@@ -356,16 +361,21 @@ export function buildRatesFromRules({
       const end = nextDay(start);
       const ds = ymd(start);
       const de = ymd(end);
-      out.push({
+      const row = {
         is_default: false,
         start_date: ds,
         end_date: de,
         price_per_day: Math.floor(leadInPrice),
         min_stay: 2,
         max_stay: 2,
-        price_per_additional_guest: Number(baseCfg.price_per_additional_guest || 0),
-        additional_guests_starts_from: Number(baseCfg.additional_guests_starts_from || 0),
-      });
+      };
+      const addlPrice = Number(baseCfg.price_per_additional_guest || 0);
+      const addlFrom = Number(baseCfg.additional_guests_starts_from || 0);
+      if (addlPrice > 0 && addlFrom > 0) {
+        row.price_per_additional_guest = addlPrice;
+        row.additional_guests_starts_from = addlFrom;
+      }
+      out.push(row);
     }
   } catch {}
   let losRules =
@@ -469,16 +479,21 @@ export function buildRatesFromRules({
       }
       const finalFloor = Math.max(minClamp || 0, profitMin || 0);
       if (finalFloor && p < finalFloor) p = finalFloor;
-      out.push({
+      const row = {
         is_default: false,
         start_date: ds,
         end_date: de,
         price_per_day: p,
         min_stay: t.min_stay ?? 1,
         max_stay: t.max_stay ?? null,
-        price_per_additional_guest: Number(baseCfg.price_per_additional_guest || 0),
-        additional_guests_starts_from: Number(baseCfg.additional_guests_starts_from || 0),
-      });
+      };
+      const addlPrice = Number(baseCfg.price_per_additional_guest || 0);
+      const addlFrom = Number(baseCfg.additional_guests_starts_from || 0);
+      if (addlPrice > 0 && addlFrom > 0) {
+        row.price_per_additional_guest = addlPrice;
+        row.additional_guests_starts_from = addlFrom;
+      }
+      out.push(row);
     }
   }
   return out;
