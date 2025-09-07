@@ -268,7 +268,7 @@ function syncRulesPropSelect() {
   for (const p of allPropsCache) {
     const opt = document.createElement('option');
     opt.value = String(p.id);
-    opt.textContent = `${p.name ?? 'Unnamed'} (ID ${p.id})`;
+    opt.textContent = `${abbreviatePropertyName(p?.name ?? 'Unnamed')} (ID ${p.id})`;
     propSelectRules.appendChild(opt);
   }
   if (!propSelectRules.value && propSelectRules.options.length) {
@@ -1065,7 +1065,7 @@ function syncCalProps() {
   for (const p of allPropsCache) {
     const opt = document.createElement('option');
     opt.value = String(p.id);
-    opt.textContent = `${p.name ?? 'Unnamed'} (ID ${p.id})`;
+    opt.textContent = `${abbreviatePropertyName(p?.name ?? 'Unnamed')} (ID ${p.id})`;
     propSelectCal.appendChild(opt);
   }
   const m = String(new Date().getMonth() + 1).padStart(2, '0');
@@ -1596,8 +1596,10 @@ function renderCalendar() {
           'touchstart',
           (e) => {
             if (!ds) return;
-            // Avoid scrolling while initiating selection on the calendar
-            // Do not call preventDefault globally to preserve native scrolling when not selecting
+            // Begin a selection; prevent default to avoid page scroll while dragging
+            try {
+              e.preventDefault();
+            } catch {}
             calSelection.active = true;
             calSelection.start = ds;
             calSelection.end = ds;
@@ -1605,6 +1607,10 @@ function renderCalendar() {
             if (!calTouchMoveHandler) {
               calTouchMoveHandler = (ev) => {
                 if (!calSelection.active || !ev.touches || ev.touches.length === 0) return;
+                // Prevent scrolling while selecting a range
+                try {
+                  ev.preventDefault();
+                } catch {}
                 const t = ev.touches[0];
                 const el = document.elementFromPoint(t.clientX, t.clientY);
                 const cellEl = el && el.closest ? el.closest('.cal-cell[data-date]') : null;
@@ -1616,7 +1622,7 @@ function renderCalendar() {
                   }
                 }
               };
-              document.addEventListener('touchmove', calTouchMoveHandler, { passive: true });
+              document.addEventListener('touchmove', calTouchMoveHandler, { passive: false });
             }
             if (!calTouchEndHandler) {
               calTouchEndHandler = (ev) => {
@@ -1635,7 +1641,7 @@ function renderCalendar() {
               document.addEventListener('touchend', calTouchEndHandler, { passive: true });
             }
           },
-          { passive: true }
+          { passive: false }
         );
         cell.addEventListener('mouseenter', (e) => {
           if (!calSelection.active || !calSelection.start) return;
