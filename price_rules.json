@@ -435,12 +435,6 @@
         "price": 500,
         "min_stay": 2,
         "max_stay": 6
-      },
-      {
-        "date": "2025-09-11",
-        "price": 100,
-        "min_stay": 2,
-        "max_stay": 2
       }
     ],
     "602278": [
