@@ -31,6 +31,10 @@ h1 {
   scrollbar-width: thin;
   padding-bottom: 4px;
 }
+.tabs-mobile {
+  display: none;
+  margin-bottom: 12px;
+}
 .tab {
   padding: 10px 14px;
   border: 1px solid #ccc;
@@ -683,6 +687,12 @@ button:active {
   main {
     margin: 12px auto;
     padding: 0 10px;
+  }
+  .tabs {
+    display: none;
+  }
+  .tabs-mobile {
+    display: block;
   }
   .grid,
   .grid.grid-4 {

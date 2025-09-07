@@ -281,11 +281,24 @@ document.addEventListener('DOMContentLoaded', () => {
   // default show Calendar
   const tabs = document.querySelectorAll('.tab');
   const pages = document.querySelectorAll('.page');
+  const tabSelect = document.getElementById('tabSelect');
   function show(page) {
     tabs.forEach((t) => t.classList.toggle('active', t.dataset.page === page));
     pages.forEach((p) => p.classList.toggle('active', p.dataset.page === page));
+    if (tabSelect) tabSelect.value = page;
   }
   tabs.forEach((t) => t.addEventListener('click', () => show(t.dataset.page)));
+  // Populate mobile tab dropdown
+  if (tabSelect) {
+    tabSelect.innerHTML = '';
+    tabs.forEach((t) => {
+      const opt = document.createElement('option');
+      opt.value = t.dataset.page;
+      opt.textContent = t.textContent.trim();
+      tabSelect.appendChild(opt);
+    });
+    tabSelect.addEventListener('change', () => show(tabSelect.value));
+  }
   show('calendar');
   // Automatically load properties on start
   propsDiv.innerHTML = 'Loading…';
