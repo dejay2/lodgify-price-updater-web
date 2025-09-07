@@ -181,7 +181,11 @@ function normalizeRules(r, opts = {}) {
         const s = new Date(startStr + 'T00:00:00');
         const e = new Date(endStr + 'T00:00:00');
         if (isNaN(s) || isNaN(e)) return out;
-        for (let d = new Date(s); d <= e; d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1)) {
+        for (
+          let d = new Date(s);
+          d <= e;
+          d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1)
+        ) {
           out.push(ymd(d));
         }
         return out;
@@ -443,7 +447,8 @@ export function buildRatesFromRules({
   // Build a quick lookup for blocked dates for this property
   const blockedDatesSet = (() => {
     try {
-      const arr = (rules && rules.blocked && (rules.blocked[String(propId)] || rules.blocked[propId])) || [];
+      const arr =
+        (rules && rules.blocked && (rules.blocked[String(propId)] || rules.blocked[propId])) || [];
       return new Set(Array.isArray(arr) ? arr : []);
     } catch {
       return new Set();

@@ -26,14 +26,19 @@ h1 {
   gap: 8px;
   margin-bottom: 12px;
   border-bottom: 2px solid #ddd;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  padding-bottom: 4px;
 }
 .tab {
-  padding: 8px 12px;
+  padding: 10px 14px;
   border: 1px solid #ccc;
   border-bottom: none;
   border-radius: 8px 8px 0 0;
   background: #f7f7f7;
   cursor: pointer;
+  flex: 0 0 auto;
 }
 .tab.active {
   background: #fff;
@@ -84,6 +89,7 @@ input[type='password'] {
   display: flex;
   gap: 8px;
   margin-top: 8px;
+  flex-wrap: wrap;
 }
 button {
   padding: 8px 12px;
@@ -160,6 +166,7 @@ button {
   border: 1px solid #ccc;
   border-radius: 8px;
   overflow: hidden;
+  overflow-x: auto; /* enable horizontal scroll on small screens */
 }
 .cal-header,
 .cal-row {
@@ -249,6 +256,7 @@ button {
   background: white;
   color: black;
   min-width: 300px;
+  width: min(92vw, 520px);
   border-radius: 8px;
   padding: 16px;
 }
@@ -311,6 +319,8 @@ button {
   gap: 12px;
   margin: 8px 0;
   align-items: center;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .legend-item {
   display: inline-flex;
@@ -466,6 +476,7 @@ button:active {
   border-color: var(--border);
   border-radius: 14px;
   box-shadow: 0 10px 36px rgba(0, 0, 0, 0.35);
+  overflow-x: auto; /* allow horizontal scroll on small screens */
 }
 .cal-header div {
   background: rgba(255, 255, 255, 0.03);
@@ -554,6 +565,7 @@ button:active {
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 12px;
+  width: min(92vw, 520px);
 }
 
 /* Month change animation */
@@ -652,4 +664,45 @@ button:active {
 }
 .seasons-table td {
   color: var(--text);
+}
+
+/* Responsive tweaks */
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .grid.grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .cal-cell {
+    min-height: 96px;
+  }
+}
+
+@media (max-width: 680px) {
+  main {
+    margin: 12px auto;
+    padding: 0 10px;
+  }
+  .grid,
+  .grid.grid-4 {
+    grid-template-columns: 1fr;
+  }
+  .actions {
+    gap: 6px;
+  }
+  .cal-header,
+  .cal-row {
+    min-width: 700px; /* enable horizontal scroll for 7 columns */
+  }
+  .cal-cell {
+    min-height: 84px;
+    padding: 6px;
+  }
+  .cal-price {
+    font-size: 1rem;
+  }
+  .tab {
+    padding: 8px 12px;
+  }
 }

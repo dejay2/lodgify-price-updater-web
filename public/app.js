@@ -977,6 +977,8 @@ function dateInRange(ds, start, endExclusive) {
 // --- Range selection state for calendar ---
 const calSelection = { active: false, start: null, end: null };
 let calMouseUpHandler = null;
+let calTouchMoveHandler = null;
+let calTouchEndHandler = null;
 function clearCalSelection() {
   calSelection.active = false;
   calSelection.start = null;
@@ -1201,7 +1203,11 @@ function computeOneNightBreakdown(ds, pid) {
   const ovr = Array.isArray(olist) ? olist.find((o) => o.date === ds) : null;
   if (ovr && ovr.price > 0) {
     return {
-      override: { price: Math.floor(Number(ovr.price)), min_stay: ovr.min_stay ?? null, max_stay: ovr.max_stay ?? null },
+      override: {
+        price: Math.floor(Number(ovr.price)),
+        min_stay: ovr.min_stay ?? null,
+        max_stay: ovr.max_stay ?? null,
+      },
       final: Math.floor(Number(ovr.price)),
     };
   }
@@ -1221,7 +1227,8 @@ function computeOneNightBreakdown(ds, pid) {
     endDiscountPct: Number(endDiscountPctInput?.value || 1),
   });
   const maxDiscPct = Number(rec.max_discount_pct || rec.maxDiscountPct || 0);
-  const discPctCapped = maxDiscPct > 0 ? Math.min(discPctRaw, Math.max(0, Math.min(1, maxDiscPct / 100))) : discPctRaw;
+  const discPctCapped =
+    maxDiscPct > 0 ? Math.min(discPctRaw, Math.max(0, Math.min(1, maxDiscPct / 100))) : discPctRaw;
   const afterDiscount = discPctCapped ? Math.floor(afterSeason * (1 - discPctCapped)) : afterSeason;
 
   // LOS for 1 night (preview)
@@ -1232,7 +1239,9 @@ function computeOneNightBreakdown(ds, pid) {
         ? rec.los
         : [];
   const losSorted = los.slice().sort((a, b) => (a.min_days ?? 0) - (b.min_days ?? 0));
-  const losCover = losSorted.find((r) => (r.min_days ?? 1) <= 1 && (r.max_days == null || r.max_days >= 1)) || null;
+  const losCover =
+    losSorted.find((r) => (r.min_days ?? 1) <= 1 && (r.max_days == null || r.max_days >= 1)) ||
+    null;
   const losPct = losCover ? -Math.abs(Number(losCover.percent || 0)) : 0;
   const afterLos = losPct ? Math.floor(afterDiscount * (1 + losPct / 100)) : afterDiscount;
 
@@ -1240,19 +1249,32 @@ function computeOneNightBreakdown(ds, pid) {
   const d = new Date(ds + 'T00:00:00');
   const day = d.getDay();
   const isWeekend = day === 5 || day === 6;
-  const weekendPct = isWeekend ? Math.abs(Number(rec.weekend_pct || rec.weekendPct || rec.weekend || 0)) : 0;
+  const weekendPct = isWeekend
+    ? Math.abs(Number(rec.weekend_pct || rec.weekendPct || rec.weekend || 0))
+    : 0;
   const afterWeekend = weekendPct ? Math.floor(afterLos * (1 + weekendPct / 100)) : afterLos;
 
   // Fee fold‑in
   const foldEnabled = !!rulesState?.settings?.fold_fees_into_nightly;
-  const includeCleaning = rulesState?.settings?.fold_include_cleaning != null ? !!rulesState.settings.fold_include_cleaning : true;
-  const includeService = rulesState?.settings?.fold_include_service != null ? !!rulesState.settings.fold_include_service : true;
-  const feesTotalIncluded = (includeCleaning ? Number(rec.cleaning_fee || 0) : 0) + (includeService ? Number(rec.service_fee || 0) : 0);
+  const includeCleaning =
+    rulesState?.settings?.fold_include_cleaning != null
+      ? !!rulesState.settings.fold_include_cleaning
+      : true;
+  const includeService =
+    rulesState?.settings?.fold_include_service != null
+      ? !!rulesState.settings.fold_include_service
+      : true;
+  const feesTotalIncluded =
+    (includeCleaning ? Number(rec.cleaning_fee || 0) : 0) +
+    (includeService ? Number(rec.service_fee || 0) : 0);
   // Nights reference from LOS tier that covers 1 night, else first tier min, else 2
   let nightsRef = 2;
   if (losCover?.min_days) nightsRef = Math.max(1, Number(losCover.min_days));
   else if (losSorted.length) nightsRef = Math.max(1, Number(losSorted[0].min_days || 2));
-  const feesPerNight = foldEnabled && feesTotalIncluded > 0 && nightsRef > 0 ? Math.floor(feesTotalIncluded / nightsRef) : 0;
+  const feesPerNight =
+    foldEnabled && feesTotalIncluded > 0 && nightsRef > 0
+      ? Math.floor(feesTotalIncluded / nightsRef)
+      : 0;
   const afterFees = afterWeekend + feesPerNight;
 
   // Profit‑based minimum
@@ -1260,7 +1282,9 @@ function computeOneNightBreakdown(ds, pid) {
   const profitFeesTotal = Number(rec.cleaning_fee || 0) + Number(rec.service_fee || 0);
   let profitMin = 0;
   if (minProfitPct > 0 && profitFeesTotal > 0 && nightsRef > 0) {
-    profitMin = Math.floor((profitFeesTotal / nightsRef) * (foldEnabled ? 1 + minProfitPct / 100 : minProfitPct / 100));
+    profitMin = Math.floor(
+      (profitFeesTotal / nightsRef) * (foldEnabled ? 1 + minProfitPct / 100 : minProfitPct / 100)
+    );
   }
 
   const prelim = afterFees;
@@ -1272,12 +1296,25 @@ function computeOneNightBreakdown(ds, pid) {
     afterSeason,
     discountPctApplied: Math.round(discPctCapped * 1000) / 10, // one decimal percent
     afterDiscount,
-    los: losCover ? { name: losCover.name || '', pct: losPct, min_days: losCover.min_days, max_days: losCover.max_days } : null,
+    los: losCover
+      ? {
+          name: losCover.name || '',
+          pct: losPct,
+          min_days: losCover.min_days,
+          max_days: losCover.max_days,
+        }
+      : null,
     afterLos,
     weekendPct,
     afterWeekend,
     foldEnabled,
-    fees: { includeCleaning, includeService, totalIncluded: feesTotalIncluded, nightsRef, perNight: feesPerNight },
+    fees: {
+      includeCleaning,
+      includeService,
+      totalIncluded: feesTotalIncluded,
+      nightsRef,
+      perNight: feesPerNight,
+    },
     afterFees,
     floors: { minRate, globalMin, profitMin },
     final,
@@ -1365,7 +1402,9 @@ function renderCalendar() {
         if (isBlocked) {
           priceEl.innerHTML = '<span class="pill pill-blocked">Blocked</span>';
           priceEl.title = 'Blocked by rules';
-          try { cell.title = priceEl.title; } catch {}
+          try {
+            cell.title = priceEl.title;
+          } catch {}
         } else {
           const p = computeOneNightPrice(ds, pid);
           priceEl.innerHTML =
@@ -1384,15 +1423,24 @@ function renderCalendar() {
           } else if (bd && bd.final != null) {
             const lines = [];
             lines.push(`Base: ${fmt(bd.base)}`);
-            if (bd.seasonPct) lines.push(`Seasons: ${bd.seasonPct > 0 ? '+' : ''}${bd.seasonPct}% → ${fmt(bd.afterSeason)}`);
-            if (bd.discountPctApplied) lines.push(`Discount: -${bd.discountPctApplied}% → ${fmt(bd.afterDiscount)}`);
-            if (bd.los) lines.push(`LOS ${bd.los.min_days}${bd.los.max_days ? '-' + bd.los.max_days : '+'}: ${bd.los.pct}% → ${fmt(bd.afterLos)}`);
+            if (bd.seasonPct)
+              lines.push(
+                `Seasons: ${bd.seasonPct > 0 ? '+' : ''}${bd.seasonPct}% → ${fmt(bd.afterSeason)}`
+              );
+            if (bd.discountPctApplied)
+              lines.push(`Discount: -${bd.discountPctApplied}% → ${fmt(bd.afterDiscount)}`);
+            if (bd.los)
+              lines.push(
+                `LOS ${bd.los.min_days}${bd.los.max_days ? '-' + bd.los.max_days : '+'}: ${bd.los.pct}% → ${fmt(bd.afterLos)}`
+              );
             if (bd.weekendPct) lines.push(`Weekend: +${bd.weekendPct}% → ${fmt(bd.afterWeekend)}`);
             if (bd.foldEnabled && bd.fees?.perNight) {
               const inc = [];
               if (bd.fees.includeCleaning) inc.push('cleaning');
               if (bd.fees.includeService) inc.push('service');
-              lines.push(`Fees (${inc.join('+')}): +${fmt(bd.fees.perNight)} (nights=${bd.fees.nightsRef}) → ${fmt(bd.afterFees)}`);
+              lines.push(
+                `Fees (${inc.join('+')}): +${fmt(bd.fees.perNight)} (nights=${bd.fees.nightsRef}) → ${fmt(bd.afterFees)}`
+              );
             }
             const floors = [];
             if (bd.floors?.minRate) floors.push(`per‑prop ${fmt(bd.floors.minRate)}`);
@@ -1407,7 +1455,9 @@ function renderCalendar() {
           if (!isBlocked && title) {
             priceEl.title = title;
             // Also attach to the whole cell so hover anywhere shows it
-            try { cell.title = title; } catch {}
+            try {
+              cell.title = title;
+            } catch {}
           }
         } catch {}
         // LOS indicator: colored dot if a second LOS tier exists
@@ -1528,6 +1578,52 @@ function renderCalendar() {
             document.addEventListener('mouseup', calMouseUpHandler);
           }
         });
+        // Touch selection (mobile): touchstart to begin, drag to extend, touchend to finalize
+        cell.addEventListener(
+          'touchstart',
+          (e) => {
+            if (!ds) return;
+            // Avoid scrolling while initiating selection on the calendar
+            // Do not call preventDefault globally to preserve native scrolling when not selecting
+            calSelection.active = true;
+            calSelection.start = ds;
+            calSelection.end = ds;
+            highlightRange(calSelection.start, calSelection.end);
+            if (!calTouchMoveHandler) {
+              calTouchMoveHandler = (ev) => {
+                if (!calSelection.active || !ev.touches || ev.touches.length === 0) return;
+                const t = ev.touches[0];
+                const el = document.elementFromPoint(t.clientX, t.clientY);
+                const cellEl = el && el.closest ? el.closest('.cal-cell[data-date]') : null;
+                if (cellEl) {
+                  const over = cellEl.getAttribute('data-date');
+                  if (over) {
+                    calSelection.end = over;
+                    highlightRange(calSelection.start, calSelection.end);
+                  }
+                }
+              };
+              document.addEventListener('touchmove', calTouchMoveHandler, { passive: true });
+            }
+            if (!calTouchEndHandler) {
+              calTouchEndHandler = (ev) => {
+                if (!calSelection.active) return;
+                const start = calSelection.start;
+                const end = calSelection.end || calSelection.start;
+                const list = datesInRange(start, end);
+                clearCalSelection();
+                document.removeEventListener('touchmove', calTouchMoveHandler);
+                document.removeEventListener('touchend', calTouchEndHandler);
+                calTouchMoveHandler = null;
+                calTouchEndHandler = null;
+                if (list.length > 1) openRangeOverrideModal(list);
+                else if (list.length === 1) openOverrideModal(list[0]);
+              };
+              document.addEventListener('touchend', calTouchEndHandler, { passive: true });
+            }
+          },
+          { passive: true }
+        );
         cell.addEventListener('mouseenter', (e) => {
           if (!calSelection.active || !calSelection.start) return;
           calSelection.end = ds;
@@ -1631,20 +1727,22 @@ function openOverrideModal(ds) {
     closeOverrideModal();
     renderCalendar();
   };
-  if (ovrBlock) ovrBlock.onclick = async () => {
-    blockDates(pid, ds);
-    await saveRules().catch((e) => showToast(e.message, 'error'));
-    showToast('Date blocked', 'success');
-    closeOverrideModal();
-    renderCalendar();
-  };
-  if (ovrUnblock) ovrUnblock.onclick = async () => {
-    unblockDates(pid, ds);
-    await saveRules().catch((e) => showToast(e.message, 'error'));
-    showToast('Date unblocked', 'success');
-    closeOverrideModal();
-    renderCalendar();
-  };
+  if (ovrBlock)
+    ovrBlock.onclick = async () => {
+      blockDates(pid, ds);
+      await saveRules().catch((e) => showToast(e.message, 'error'));
+      showToast('Date blocked', 'success');
+      closeOverrideModal();
+      renderCalendar();
+    };
+  if (ovrUnblock)
+    ovrUnblock.onclick = async () => {
+      unblockDates(pid, ds);
+      await saveRules().catch((e) => showToast(e.message, 'error'));
+      showToast('Date unblocked', 'success');
+      closeOverrideModal();
+      renderCalendar();
+    };
   ovrDelete.onclick = async () => {
     const idx = list.findIndex((o) => o.date === ds);
     if (idx >= 0) list.splice(idx, 1);
@@ -1769,20 +1867,22 @@ function openRangeOverrideModal(dateList) {
     closeOverrideModal();
     renderCalendar();
   };
-  if (ovrBlock) ovrBlock.onclick = async () => {
-    blockDates(pid, sorted);
-    await saveRules().catch((e) => showToast(e.message, 'error'));
-    showToast(`Blocked ${sorted.length} day(s)`, 'success');
-    closeOverrideModal();
-    renderCalendar();
-  };
-  if (ovrUnblock) ovrUnblock.onclick = async () => {
-    unblockDates(pid, sorted);
-    await saveRules().catch((e) => showToast(e.message, 'error'));
-    showToast(`Unblocked ${sorted.length} day(s)`, 'success');
-    closeOverrideModal();
-    renderCalendar();
-  };
+  if (ovrBlock)
+    ovrBlock.onclick = async () => {
+      blockDates(pid, sorted);
+      await saveRules().catch((e) => showToast(e.message, 'error'));
+      showToast(`Blocked ${sorted.length} day(s)`, 'success');
+      closeOverrideModal();
+      renderCalendar();
+    };
+  if (ovrUnblock)
+    ovrUnblock.onclick = async () => {
+      unblockDates(pid, sorted);
+      await saveRules().catch((e) => showToast(e.message, 'error'));
+      showToast(`Unblocked ${sorted.length} day(s)`, 'success');
+      closeOverrideModal();
+      renderCalendar();
+    };
   ovrDelete.onclick = async () => {
     for (const ds of sorted) {
       const idx = list.findIndex((o) => o.date === ds);
