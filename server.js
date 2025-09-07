@@ -634,7 +634,7 @@ async function runJitterOnce() {
       settings,
       postRates,
       jitterMap,
-      savePayloads: false, // do not save per-room payloads for jitter runs
+      savePayloads: true, // save per-room payloads; cleanup limits total count
     });
     const nowIso = new Date().toISOString();
     console.log(
@@ -679,6 +679,24 @@ async function runJitterOnce() {
         'utf-8'
       );
       console.log(`[auto-jitter] saved log: ${fname}`);
+      // Best-effort: keep only the latest N jitter logs (default 10)
+      try {
+        const entries2 = await fs.readdir(payloadDir, { withFileTypes: true });
+        const jitterFiles = entries2
+          .filter((e) => e.isFile() && /^jitter_\d{8}_\d{6}\.json$/.test(e.name))
+          .map((e) => e.name)
+          .sort();
+        const keepCount = Math.max(
+          0,
+          Number(process.env.JITTER_LOGS_KEEP || process.env.LOGS_KEEP || 10) || 10
+        );
+        const excess = Math.max(0, jitterFiles.length - keepCount);
+        for (let i = 0; i < excess; i++) {
+          try {
+            await fs.unlink(path.join(payloadDir, jitterFiles[i]));
+          } catch {}
+        }
+      } catch {}
       if (summary.failed > 0) {
         const failures = (summary.logs || []).filter((l) =>
           l.toLowerCase().includes('update failed')

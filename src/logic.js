@@ -17,6 +17,23 @@ function getRoomName(room) {
 
 // Baseline/calendar pricing removed — rules-only mode
 
+async function cleanupOldFiles({ dir, pattern, keep = 10 }) {
+  try {
+    const entries = await fs.readdir(dir, { withFileTypes: true });
+    const files = entries
+      .filter((e) => e.isFile() && pattern.test(e.name))
+      .map((e) => e.name)
+      .sort();
+    const excess = Math.max(0, files.length - keep);
+    for (let i = 0; i < excess; i++) {
+      const f = path.join(dir, files[i]);
+      try {
+        await fs.unlink(f);
+      } catch {}
+    }
+  } catch {}
+}
+
 export async function runUpdate({
   apiKey,
   settings,
@@ -147,6 +164,16 @@ export async function runUpdate({
           await fs.writeFile(fname, JSON.stringify(payload, null, 2), 'utf-8');
           payloadPath = fname;
           log(`Saved payload: ${fname}`);
+          // Best-effort: keep only the latest N payload logs (default 10)
+          const keepCount = Math.max(
+            0,
+            Number(process.env.PAYLOAD_LOGS_KEEP || process.env.LOGS_KEEP || 10) || 10
+          );
+          await cleanupOldFiles({
+            dir: payloadDir,
+            pattern: /^payload_\d{8}_\d{6}_prop.*_room.*\.json$/,
+            keep: keepCount,
+          });
         } catch (e) {
           log(`Failed to write payload file: ${e.message}`);
         }

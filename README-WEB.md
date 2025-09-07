@@ -36,6 +36,10 @@ Setup
      - `PORT=3000`
    - Optional entries:
      - `BOOKING_SYNC_INTERVAL_MINUTES=15` to enable automated incremental sync (0 disables).
+     - Log retention (defaults shown):
+       - `PAYLOAD_LOGS_KEEP=10` — keep most recent N `payload_*.json` files in `payload_logs/`.
+       - `JITTER_LOGS_KEEP=10` — keep most recent N `jitter_*.json` files in `payload_logs/`.
+       - `LOGS_KEEP` can be used as a fallback default for both if set.
      - Note: Auto‑jitter is configured in the web app (Settings → Jitter). No env vars required.
 
 3. Start the server:
