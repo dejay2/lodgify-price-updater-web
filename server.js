@@ -619,10 +619,10 @@ async function runJitterOnce() {
     );
     const settings = {
       ...s, // include fee fold-in and other runtime settings from rules
-      windowDays: 30,
-      startDiscountPct: 30,
-      endDiscountPct: 1,
-      minPrice: 0,
+      windowDays: s.window_days ?? 30,
+      startDiscountPct: s.start_discount_pct ?? 30,
+      endDiscountPct: s.end_discount_pct ?? 1,
+      minPrice: s.min_price ?? 0,
       startDate: fmt(startLocal),
       endDate: fmt(endLocal),
       rulesFile,
@@ -734,7 +734,7 @@ async function rescheduleJitterFromRules() {
   }
 }
 
-app.listen(PORT, async () => {
+const server = app.listen(PORT, async () => {
   console.log(`Lodgify Price Updater web listening on http://localhost:${PORT}`);
   // Start automated sync if configured
   if (AUTO_SYNC_MINUTES > 0) {
@@ -769,3 +769,36 @@ app.listen(PORT, async () => {
   }
   await rescheduleJitterFromRules();
 });
+
+// Handle port-in-use errors gracefully
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use. Waiting 5 seconds before retry...`);
+    setTimeout(() => {
+      console.log('Retrying server start...');
+      server.close();
+      server.listen(PORT);
+    }, 5000);
+  } else {
+    console.error('Server error:', err);
+    process.exit(1);
+  }
+});
+
+// Graceful shutdown on SIGTERM/SIGINT
+const gracefulShutdown = (signal) => {
+  console.log(`\n${signal} received. Shutting down gracefully...`);
+  server.close(() => {
+    console.log('Server closed. Exiting process.');
+    if (jitterTimer) clearInterval(jitterTimer);
+    process.exit(0);
+  });
+  // Force close after 10s
+  setTimeout(() => {
+    console.error('Forced shutdown after timeout');
+    process.exit(1);
+  }, 10000);
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));

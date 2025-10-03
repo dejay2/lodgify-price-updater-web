@@ -35,6 +35,12 @@ h1 {
   display: none;
   margin-bottom: 12px;
 }
+.tabs-mobile label {
+  display: block;
+}
+.tabs-mobile select {
+  width: 100%;
+}
 .tab {
   padding: 10px 14px;
   border: 1px solid #ccc;
@@ -703,7 +709,7 @@ button:active {
   }
   .cal-header,
   .cal-row {
-    min-width: 700px; /* enable horizontal scroll for 7 columns */
+    min-width: 630px; /* enable horizontal scroll for 7 columns */
   }
   .cal-cell {
     min-height: 84px;
